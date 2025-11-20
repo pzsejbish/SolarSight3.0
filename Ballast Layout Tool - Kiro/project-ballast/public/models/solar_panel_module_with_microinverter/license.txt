@@ -1,0 +1,11 @@
+Model Information:
+* title:	Solar Panel Module With Microinverter
+* source:	https://sketchfab.com/3d-models/solar-panel-module-with-microinverter-64f915c4228144e3850c6ce500188d4f
+* author:	Michael Vollrath (https://sketchfab.com/michaelvollrath)
+
+Model License:
+* license type:	CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
+* requirements:	Author must be credited. No commercial use.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Solar Panel Module With Microinverter" (https://sketchfab.com/3d-models/solar-panel-module-with-microinverter-64f915c4228144e3850c6ce500188d4f) by Michael Vollrath (https://sketchfab.com/michaelvollrath) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)

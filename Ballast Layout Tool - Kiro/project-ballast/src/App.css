@@ -1,0 +1,392 @@
+/* App.css */
+
+/*!
+ * --------------------------------------------------------------------------------
+ * File: [App.css]
+ * Project: [Ballast Engineering Tool]
+ * Created Date: [D12/29/2023]
+ * Author: [James Bish, Arsen Tamamyan ]
+ * Organization: PZSE Structural Engineers
+ * --------------------------------------------------------------------------------
+ * 
+ * Copyright (c) [2024] PZSE Structural Engineers
+ * 
+ * This source code is the proprietary property of PZSE Structural Engineers and is
+ * protected by international copyright and trade secret laws and treaties. No part
+ * of this source code may be reproduced, copied, distributed, transmitted, broadcast,
+ * displayed, sold, licensed, or otherwise exploited for any commercial purpose
+ * whatsoever without the express prior written consent of PZSE Structural Engineers.
+ * 
+ * Use of this source code is governed by the terms of the agreement under which it
+ * has been provided, which typically includes restrictions on use, disclosure,
+ * modification, and conditions of license. If you have not received this source code
+ * under such an agreement, then you have no rights to use it in any manner that
+ * infringes the intellectual property rights of PZSE Structural Engineers.
+ * 
+ * --------------------------------------------------------------------------------
+ */
+.App {
+  text-align: center;
+  font-family: 'Century Gothic', sans-serif;
+  width:100vw;
+}
+
+.pzse-logo {
+  max-width: 100px;
+}
+
+.sunballast-logo {
+  max-width: 300px;
+}
+
+.primary-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.secondary-header {
+  margin-bottom: 20px;
+  display:block;
+  align-self: flex-start;
+  text-align:left;
+  margin-left: 5%;
+}
+
+.flex-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flex-item {
+  display: flex;
+}
+
+.location-search-input {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  align-items: top;
+}
+
+.get-address-button {
+  grid-column: span 1; /* Span across all three columns */
+  width: auto;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+/* Style for the labels when they are inline */
+.label-inline {
+  margin: 0;
+  flex: 0 0 auto; /* Don't grow, don't shrink, and base size on content */
+}
+
+.label-or {
+  align-self: center;
+}
+
+/* Style for input fields to take remaining space */
+.input-inline {
+  width: 100%; /* Full width of their container */
+  padding: 10px 0px; /* Padding inside the input fields */
+}
+
+/* Style for the container of label and input to be in-line */
+.label-input-wrapper {
+  display: grid;
+ /* Space below each label-input pair */
+}
+
+.input-autocomplete-wrapper {
+  position: relative; /* This is required for absolute children to be positioned according to this parent */
+  width: 100%; /* This ensures it takes the available width, you might adjust it if it doesn't work as expected */
+}
+
+.autocomplete-dropdown-container {
+  position: absolute;
+  z-index: 1000;
+  width: 100%; /* This will now be 100% of the .input-autocomplete-wrapper */
+  cursor: pointer;
+  top: 100%; /* Adjust if necessary to position the dropdown right below the input field */
+  left: 0;
+}
+
+.suggestion-item {
+  z-index: 1000;
+  background-color: #ffffff;
+  border-bottom: 1px solid #d9d9d9;
+  cursor: pointer;
+}
+
+.suggestion-item--active {
+  z-index: 1000;
+  background-color: #fafafa;
+  cursor: pointer;
+}
+
+.left-column {
+flex: 1;
+display: flex;
+flex-direction: column;
+margin: 4%;
+}
+
+.right-column {
+  flex: 1;
+}
+
+.map-container{
+  width: 100%;
+  height: 500px;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  margin: 20px;
+  width: 100%;
+}
+
+.address-input-container,
+.or-label-container,
+.coordinates-input-container {
+  margin-bottom: 20px; /* Adjust the value as needed */
+}
+
+.rooftop-container {
+  position: absolute;
+  width: 100%; /* Adjust as needed */
+  height: 100%; /* Adjust as needed */
+ /* Center the content */
+  background-color: #f3f3f3;
+  border: 2px solid black;
+  margin: 25px;/* Allow scrolling */
+  overflow: visible;
+}
+
+
+.panel-row {
+  display: flex;
+}
+
+.panel-cell {
+  border: 1px solid gray; /* Grid lines */
+  width: 30px; /* Adjust based on panel size */
+  height: 30px; /* Adjust based on panel size */
+  background-color: #e0e0e0; /* Panel color */
+  box-sizing: border-box; /* Include border in width and height */
+  cursor: pointer;
+}
+
+
+.viewport-container {
+  width: 100vw; /* Full viewport width */
+  height: 100vh; /* Adjust height based on header */
+  display: flex; /* Hide scrollbars */
+  background-color: rgb(255, 255, 255);
+  top: 0%;
+}
+
+.building-overlay {
+  position: absolute;
+  top: 0%;
+  border: 2px dashed blue; /* Dashed line for the building outline */
+  box-sizing: border-box; /* Include border in width and height */
+  pointer-events: none;
+}
+
+.panel-cell.clicked {
+  background-color: rgb(29, 40, 92);/* Add your checker pattern image URL here */
+  background-size: contain;
+}
+
+.panel-cell.obstructed {
+  background-color: red;
+  background-size: contain;
+}
+
+
+.selection-box {
+  position: absolute;
+  border: 2px dashed rgb(255, 255, 255);
+  background-color: rgba(23, 23, 35, 0.2);
+}
+
+.solar-panel-diagram {
+  display: flex;
+  width: 90vw;
+}
+
+.diagram-container { 
+  display: flex;
+  flex-direction: column;
+}
+
+.diagram-image{
+  flex: none;
+  position:relative;
+  width: fit-content;
+  margin-left: 7%;
+}
+
+.input-width {
+  display: flex;
+  width: max-content;
+  margin-top: 21.5%;
+}
+
+.input-length {
+  display: flex;
+  width: max-content;
+  margin-top: 20.5%;
+}
+
+.input-gap-width {
+  display: flex;
+  width: max-content;
+  margin-top: 5%;
+}
+
+.input-gap-length {
+  display: flex;
+  width: max-content;
+  margin-top: 22%;
+}
+
+.solar-img {
+  margin-left: 215px;
+  margin-top: 20px;
+  width: 50%;
+  margin-bottom: 25px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.form-label {
+  width: 100%; /* Adjust width as needed */
+  text-align: left;
+}
+
+.input-unit-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100px; /* Adjust width as needed */
+}
+
+.form-input {
+  flex-grow: 1; /* Ensures uniform size */
+  margin-right: 5px; /* Adjust as needed */
+}
+
+.layout-method-option {
+  justify-content: left;
+}
+
+.viewport-container .custom-transform-component {
+  width: 100vw !important;
+  height: 100vh !important;
+  /* Add any other styles you need */
+}
+
+.custom-transform-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.react-transform-component {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.react-trandform-element {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.toggle-button {
+  width: 180px !important;
+}
+
+.obstruction-height-input {
+  padding: 2px;
+  width: calc(0% + 20px); /* full width - 2px border size from each side - 4px */
+  height: calc(0% + 6px);
+  background: red;
+  text-align: center;
+  position: fixed;
+}
+
+.obstruction-height-input::-webkit-inner-spin-button,
+.obstruction-height-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-button {
+  display: flex;
+  width:50%;
+}
+
+.copywright {
+  display:flex;
+  flex-direction: column;
+  margin-top: 100px;
+}
+
+.login-container {
+  display:flex;
+  justify-content: center;
+}
+
+/* Setback styles */
+.setback-top, .setback-bottom, .setback-left, .setback-right {
+  position: absolute;
+  background-color: rgba(255, 212, 0); /* Opaque yellow */
+  z-index: 10; /* Ensure it's above the grid but below the interactive elements */
+}
+
+.setback-top {
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.setback-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.setback-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.setback-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.grid-container {
+  position: absolute; /* Ensure it's positioned relative to rooftop-container */
+  top: 0;
+  left: 0;
+}
+
+.logout-button {
+  display:flex;
+  margin-left: 5%;
+}
