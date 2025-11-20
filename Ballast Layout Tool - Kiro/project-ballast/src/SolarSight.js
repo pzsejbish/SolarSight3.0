@@ -147,6 +147,8 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
   const mapOptions = React.useMemo(
     () => ({
       mapTypeId: "satellite",
+      tilt: 0, // Disable tilt (keep map flat/straight)
+      rotateControl: false, // Hide the rotate/tilt control button
     }),
     []
   );
@@ -1203,15 +1205,13 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
         return;
       }
 
-      // HIDE the existing array panels during edit
+      // Keep the existing array panels visible during edit
+      // They will be regenerated when arrows are moved
       console.log(
-        "✏️ Hiding",
+        "✏️ Keeping",
         array.panelPolygons.length,
-        "panels for editing"
+        "panels visible for editing"
       );
-      if (array.panelPolygons) {
-        array.panelPolygons.forEach((panel) => panel.setMap(null));
-      }
 
       // Position arrows at the current extent of the array (not at origin)
       if (
