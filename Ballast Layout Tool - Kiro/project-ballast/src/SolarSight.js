@@ -1014,6 +1014,24 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
       console.log("🔵 Current arrays state:", arrays);
       console.log("🔵 Looking for array with ID:", currentArrayDraft.id);
 
+      // Hide and disable all arrows when saving the array
+      if (currentArrayDraft.leftArrow) {
+        currentArrayDraft.leftArrow.setVisible(false);
+        currentArrayDraft.leftArrow.setDraggable(false);
+      }
+      if (currentArrayDraft.rightArrow) {
+        currentArrayDraft.rightArrow.setVisible(false);
+        currentArrayDraft.rightArrow.setDraggable(false);
+      }
+      if (currentArrayDraft.upArrow) {
+        currentArrayDraft.upArrow.setVisible(false);
+        currentArrayDraft.upArrow.setDraggable(false);
+      }
+      if (currentArrayDraft.downArrow) {
+        currentArrayDraft.downArrow.setVisible(false);
+        currentArrayDraft.downArrow.setDraggable(false);
+      }
+
       // Check if we're editing an existing array or creating a new one
       // Use the callback form to get the latest arrays state
       setArrays((prev) => {
@@ -1303,6 +1321,24 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
           upDistance,
           downDistance,
         });
+      }
+
+      // Re-enable and show arrows for editing
+      if (array.leftArrow) {
+        array.leftArrow.setVisible(true);
+        array.leftArrow.setDraggable(true);
+      }
+      if (array.rightArrow) {
+        array.rightArrow.setVisible(true);
+        array.rightArrow.setDraggable(true);
+      }
+      if (array.upArrow) {
+        array.upArrow.setVisible(true);
+        array.upArrow.setDraggable(true);
+      }
+      if (array.downArrow) {
+        array.downArrow.setVisible(true);
+        array.downArrow.setDraggable(true);
       }
 
       // IMPORTANT: Set the SAME array object as draft (not a copy)
