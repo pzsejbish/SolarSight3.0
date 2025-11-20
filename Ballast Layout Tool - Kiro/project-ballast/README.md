@@ -1,70 +1,152 @@
-# Getting Started with Create React App
+# SolarSight 3.0
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An interactive solar panel array layout tool for commercial rooftops, built with React and Google Maps API.
 
-## Available Scripts
+![SolarSight Demo](https://img.shields.io/badge/status-active-success.svg)
+![React](https://img.shields.io/badge/react-18.x-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-In the project directory, you can run:
+## 🌟 Features
 
-### `npm start`
+- **Interactive Building Drawing** - Click to draw building polygons on satellite imagery
+- **Automatic Setback Calculation** - Generates code-compliant setback zones
+- **Obstruction Management** - Draw and manage rooftop obstructions (HVAC, vents, etc.)
+- **4-Directional Array Creation** - Intuitive drag-to-expand array placement
+- **Array Editing** - Resize, rotate, and reposition existing arrays
+- **Excel Export** - Converts arrays to giant grid format for calculations
+- **Real-time Validation** - Prevents panel placement in invalid areas
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🚀 Quick Start
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### For Interns & New Developers
 
-### `npm test`
+**Start here:** [SETUP.md](SETUP.md) - Complete setup instructions
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**Then read:** [README_INTERNS.md](README_INTERNS.md) - Onboarding guide
 
-### `npm run build`
+### For Experienced Developers
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+# Clone and install
+git clone https://github.com/pzsejbish/SolarSight3.0.git
+cd SolarSight3.0
+npm install
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Configure environment
+cp .env.example .env
+# Edit .env and add your Google Maps API key
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Start development server
+npm start
+```
 
-### `npm run eject`
+## 📚 Documentation
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- **[SETUP.md](SETUP.md)** - Detailed setup instructions
+- **[README_INTERNS.md](README_INTERNS.md)** - Intern onboarding guide
+- **[QUICK_START_TESTING.md](QUICK_START_TESTING.md)** - Testing guide
+- **[ARRAY_SYSTEM_ARCHITECTURE.md](ARRAY_SYSTEM_ARCHITECTURE.md)** - Technical architecture
+- **[ARRAY_INTEGRATION_GUIDE.md](ARRAY_INTEGRATION_GUIDE.md)** - Integration guide
+- **[OBSTRUCTION_WORKFLOW_GUIDE.md](OBSTRUCTION_WORKFLOW_GUIDE.md)** - Obstruction features
+- **[SOLARSIGHT_PORT_CHECKLIST.md](SOLARSIGHT_PORT_CHECKLIST.md)** - Porting to other projects
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🏗️ Architecture
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```
+src/
+├── SolarSight.js                    # Main orchestrator component
+├── Components/
+│   ├── ArrayCreationTool.js         # Interactive array creation
+│   ├── ArrayControlPanel.js         # Array management UI
+│   ├── ArrayWorkflowPanel.js        # Step-by-step workflow
+│   ├── ObstructionDrawingTool.js    # Obstruction drawing
+│   ├── WorkflowControlPanel.js      # Main workflow navigation
+│   └── ErrorBoundary.js             # Error handling
+└── utils/
+    ├── ArrayManager.js              # Array data management
+    ├── ArrayToGridReconciler.js     # Excel export logic
+    ├── ObstructionSetback.js        # Setback calculations
+    └── PolygonProcessing.js         # Polygon utilities
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🔑 Requirements
 
-## Learn More
+- Node.js 16+
+- Google Maps API key with these APIs enabled:
+  - Maps JavaScript API
+  - Places API
+  - Geocoding API
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🎯 Workflow
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. **Draw Building** - Click points to outline the building
+2. **Add Obstructions** - Draw polygons around obstacles
+3. **Create Arrays** - Click origin, drag arrows to size
+4. **Edit & Refine** - Adjust arrays as needed
+5. **Export** - Generate Excel-compatible grid data
 
-### Code Splitting
+## 🛠️ Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+# Start dev server
+npm start
 
-### Analyzing the Bundle Size
+# Build for production
+npm run build
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+# Run tests
+npm test
+```
 
-### Making a Progressive Web App
+## 🐛 Troubleshooting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Google Maps not loading
+- Verify API key in `.env`
+- Check APIs are enabled in Google Cloud Console
+- Restart dev server after changing `.env`
 
-### Advanced Configuration
+### Panels not appearing
+- Draw building polygon first
+- Verify panel dimensions in form data
+- Check browser console for errors
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+See [SETUP.md](SETUP.md) for more troubleshooting tips.
 
-### Deployment
+## 📦 Key Dependencies
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+- `react` - UI framework
+- `@googlemaps/js-api-loader` - Google Maps integration
+- `react-dom` - React rendering
 
-### `npm run build` fails to minify
+## 🤝 Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+1. Create a feature branch: `git checkout -b feature/my-feature`
+2. Make your changes
+3. Test thoroughly (see [QUICK_START_TESTING.md](QUICK_START_TESTING.md))
+4. Commit: `git commit -m "Add feature: description"`
+5. Push: `git push origin feature/my-feature`
+6. Create a Pull Request
+
+## 📝 Recent Updates
+
+- **Array Dimension Persistence** - Fixed bug where array dimensions weren't saved correctly
+- **Clean Public Release** - Removed sensitive data, added comprehensive documentation
+- **Intern-Friendly** - Added detailed setup and onboarding guides
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+## 🙏 Acknowledgments
+
+Built for PZSE by the engineering team. Special thanks to all contributors and interns who have worked on this project.
+
+## 📞 Support
+
+- Check the documentation files first
+- Review browser console for errors
+- Contact your supervisor or team lead
+
+---
+
+**Built with ❤️ for solar energy** ☀️
