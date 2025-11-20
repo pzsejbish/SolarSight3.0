@@ -1,73 +1,44 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { FormDataProvider } from './FormDataContext';
-import useGoogleMapsApi from './useGoogleMapsApi';
-import Login from './login';
+import React, { useState } from 'react';
+import SolarSight from './SolarSight';
+import './App.css';
 
-// Lazy load components
-const Home = lazy(() => import('./Home'));
-const AnotherPage = lazy(() => import('./AnotherPage'));
-const MapLayoutVisualizer = lazy(() => import('./MapLayoutVisualizer'));
-const SatelliteLayoutTool = lazy(() => import('./SatelliteLayoutTool'));
-const SolarSight = lazy(() => import('./SolarSight').then(module => ({ default: module.SolarSight })));
+/**
+ * Simplified App.js for SolarSight 3.0
+ * This is a standalone demo that runs SolarSight without authentication or routing
+ */
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('isLoggedIn') === 'true');
-  const isGoogleMapsLoaded = useGoogleMapsApi();
+  // Sample form data - customize these values for your project
+  const [formData] = useState({
+    // Panel dimensions (in feet)
+    pv_module_ew_width: "3.28",
+    pv_module_ns_length: "5.58",
+    distance_between_panels_ew: "0.16",
+    distance_between_panels_ns: "0.16",
+    
+    // Setback distances (in feet)
+    setback_distance_north: "3",
+    setback_distance_south: "3",
+    setback_distance_east: "3",
+    setback_distance_west: "3",
+    
+    // Obstruction setback (in feet)
+    obstruction_setback_distance: "5",
+  });
 
-  useEffect(() => {
-    console.log("App mounted, isLoggedIn:", isLoggedIn);
-  }, [isLoggedIn]);
-
-  const handleLogin = () => {
-    localStorage.setItem('isLoggedIn', 'true');
-    setIsLoggedIn(true);
-    console.log("User logged in");
+  const handleSave = (data) => {
+    console.log('SolarSight data saved:', data);
+    // TODO: Send this data to your backend
+    // Example: fetch('/api/save-layout', { method: 'POST', body: JSON.stringify(data) })
   };
-
-  const handleLogout = () => {
-    localStorage.setItem('isLoggedIn', 'false');
-    setIsLoggedIn(false);
-    console.log("User logged out");
-  };
-
-  if (!isGoogleMapsLoaded) {
-    return <div>Loading Google Maps...</div>;
-  }
 
   return (
-    <Router>
-      <FormDataProvider>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route 
-              path="/" 
-              element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/home" />} 
-            />
-            <Route 
-              path="/home" 
-              element={isLoggedIn ? <Home onLogout={handleLogout} isGoogleMapsLoaded={isGoogleMapsLoaded} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/rectangular-layout" 
-              element={isLoggedIn ? <AnotherPage onLogout={handleLogout} isGoogleMapsLoaded={isGoogleMapsLoaded} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/map-layout-page" 
-              element={isLoggedIn ? <MapLayoutVisualizer isGoogleMapsLoaded={isGoogleMapsLoaded} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/satellite-layout-tool" 
-              element={isLoggedIn ? <SatelliteLayoutTool isGoogleMapsLoaded={isGoogleMapsLoaded} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/solar-sight" 
-              element={isLoggedIn ? <SolarSight isGoogleMapsLoaded={isGoogleMapsLoaded} /> : <Navigate to="/" />} 
-            />
-          </Routes>
-        </Suspense>
-      </FormDataProvider>
-    </Router>
+    <div className="App">
+      <SolarSight 
+        formData={formData}
+        onSave={handleSave}
+      />
+    </div>
   );
 }
 

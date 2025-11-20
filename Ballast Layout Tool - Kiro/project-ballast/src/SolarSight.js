@@ -1,11 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useFormData } from './FormDataContext';
-import SolarSightMap from './Components/SolarSightMap';
-import PanelObstructionManager from './Components/PanelObstructionManager';
 import { generateSetbackPolygon, processPolygon, findLongestEdge, getSelectedPanelData, calculateBoundingBoxDimensions } from './utils/PolygonProcessing';
-import Swal from 'sweetalert2';
-import {SolarPanelScene} from '../src/SolarPanelScene';
 import { ArrayManager } from './utils/ArrayManager';
 import { ArrayToGridReconciler } from './utils/ArrayToGridReconciler';
 import ArrayCreationTool from './Components/ArrayCreationTool';
@@ -96,10 +90,9 @@ function createGridMapping(fullGrid) {
   };
 }
 
-function SolarSightComponent({ isGoogleMapsLoaded }) {
-  const { formData } = useFormData();
-  const location = useLocation();
-  const { mapCenter, zoom, existingLayout } = location.state || {};
+function SolarSightComponent({ formData, onSave }) {
+  // formData is now passed as a prop instead of from context
+  // onSave callback for when user saves the layout
 
   const mapRef = useRef(null);
   const drawingManagerRef = useRef(null); //
@@ -2509,3 +2502,4 @@ const handleSaveLayout = useCallback(() => {
 }
 
 export const SolarSight = React.memo(SolarSightComponent);
+export default SolarSight;
