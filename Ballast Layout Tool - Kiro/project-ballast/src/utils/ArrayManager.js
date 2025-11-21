@@ -9,8 +9,9 @@
  * {
  *   id: unique identifier
  *   origin: { lat, lng } - anchor point for the array
- *   rows: number of panels in horizontal direction
- *   cols: number of panels in vertical direction
+ *   rows: number of panels in horizontal direction (for backward compatibility)
+ *   cols: number of panels in vertical direction (for backward compatibility)
+ *   panelCoords: Set of "row,col" strings representing which panels exist (supports irregular arrays)
  *   rotation: angle in degrees (relative to building's longest edge)
  *   panelPolygons: array of Google Maps Polygon objects
  *   state: 'creating' | 'active' | 'selected'
@@ -18,7 +19,13 @@
  */
 
 export class ArrayManager {
-  constructor(formData, setbackPolygon, buildingPolygon, buildingRotation, obstructions = []) {
+  constructor(
+    formData,
+    setbackPolygon,
+    buildingPolygon,
+    buildingRotation,
+    obstructions = []
+  ) {
     this.formData = formData;
     this.setbackPolygon = setbackPolygon;
     this.buildingPolygon = buildingPolygon;
@@ -27,23 +34,27 @@ export class ArrayManager {
     this.arrays = [];
     this.nextArrayId = 1;
   }
-  
+
   /**
    * Update obstructions (called after obstruction drawing is complete)
    */
   setObstructions(obstructions) {
     this.obstructions = obstructions;
-    console.log('ArrayManager obstructions updated:', obstructions.length);
+    console.log("ArrayManager obstructions updated:", obstructions.length);
   }
 
   /**
    * Calculate panel dimensions in meters
    */
   getPanelDimensions() {
-    const panelWidthMeters = parseFloat(this.formData.pv_module_ew_width) * 0.3048;
-    const panelLengthMeters = parseFloat(this.formData.pv_module_ns_length) * 0.3048;
-    const spacingEWMeters = parseFloat(this.formData.distance_between_panels_ew) * 0.3048;
-    const spacingNSMeters = parseFloat(this.formData.distance_between_panels_ns) * 0.3048;
+    const panelWidthMeters =
+      parseFloat(this.formData.pv_module_ew_width) * 0.3048;
+    const panelLengthMeters =
+      parseFloat(this.formData.pv_module_ns_length) * 0.3048;
+    const spacingEWMeters =
+      parseFloat(this.formData.distance_between_panels_ew) * 0.3048;
+    const spacingNSMeters =
+      parseFloat(this.formData.distance_between_panels_ns) * 0.3048;
 
     return {
       width: panelWidthMeters,
@@ -51,7 +62,7 @@ export class ArrayManager {
       spacingEW: spacingEWMeters,
       spacingNS: spacingNSMeters,
       unitWidth: panelWidthMeters + spacingEWMeters,
-      unitLength: panelLengthMeters + spacingNSMeters
+      unitLength: panelLengthMeters + spacingNSMeters,
     };
   }
 
@@ -64,14 +75,15 @@ export class ArrayManager {
       origin: { lat: originLatLng.lat(), lng: originLatLng.lng() },
       rows: 1,
       cols: 1,
-      rowsLeft: 0,   // Panels to the left of origin
-      rowsRight: 0,  // Panels to the right of origin
-      colsUp: 0,     // Panels above origin (perpendicular to building edge)
-      colsDown: 0,   // Panels below origin (perpendicular to building edge)
+      rowsLeft: 0, // Panels to the left of origin
+      rowsRight: 0, // Panels to the right of origin
+      colsUp: 0, // Panels above origin (perpendicular to building edge)
+      colsDown: 0, // Panels below origin (perpendicular to building edge)
+      panelCoords: new Set(["0,0"]), // Start with origin panel at (0,0)
       rotation: 0, // Relative to building rotation
       panelPolygons: [],
-      state: 'creating',
-      obstructions: [] // Track obstructed panels within this array
+      state: "creating",
+      obstructions: [], // Track obstructed panels within this array
     };
 
     this.arrays.push(array);
@@ -86,6 +98,52 @@ export class ArrayManager {
   }
 
   /**
+   * Helper: Initialize panelCoords from rectangular dimensions
+   * Used when transitioning from old rectangular format to coordinate-based
+   */
+  initializePanelCoordsFromRect(array) {
+    if (!array.panelCoords) {
+      array.panelCoords = new Set();
+    }
+    array.panelCoords.clear();
+
+    const totalRows = array.rowsLeft + 1 + array.rowsRight;
+    const totalCols = array.colsUp + 1 + array.colsDown;
+
+    for (let row = 0; row < totalRows; row++) {
+      for (let col = 0; col < totalCols; col++) {
+        const rowOffset = row - array.rowsLeft;
+        const colOffset = col - array.colsUp;
+        array.panelCoords.add(`${rowOffset},${colOffset}`);
+      }
+    }
+  }
+
+  /**
+   * Helper: Get bounds of the array (min/max row and col offsets)
+   */
+  getArrayBounds(array) {
+    if (!array.panelCoords || array.panelCoords.size === 0) {
+      return { minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 };
+    }
+
+    let minRow = Infinity,
+      maxRow = -Infinity;
+    let minCol = Infinity,
+      maxCol = -Infinity;
+
+    for (const coordStr of array.panelCoords) {
+      const [row, col] = coordStr.split(",").map(Number);
+      minRow = Math.min(minRow, row);
+      maxRow = Math.max(maxRow, row);
+      minCol = Math.min(minCol, col);
+      maxCol = Math.max(maxCol, col);
+    }
+
+    return { minRow, maxRow, minCol, maxCol };
+  }
+
+  /**
    * Generate panel polygons for an array
    */
   generateArrayPanels(array, map) {
@@ -95,124 +153,159 @@ export class ArrayManager {
     //   cols: array.cols,
     //   hasMap: !!map
     // });
-    
+
     // Clear existing panels
-    array.panelPolygons.forEach(panel => panel.setMap(null));
+    array.panelPolygons.forEach((panel) => panel.setMap(null));
     array.panelPolygons = [];
 
     const dims = this.getPanelDimensions();
     // console.log('Panel dimensions:', dims);
-    
+
     // Use building rotation to align with longest edge
     // Panels extend ALONG the building edge, so we use the building rotation directly
     // But we need to ensure the direction matches the arrow drag direction
     const absoluteRotation = this.buildingRotation + array.rotation;
     // console.log('Panel rotation:', { buildingRotation: this.buildingRotation, arrayRotation: array.rotation, absolute: absoluteRotation });
-    
+
     // Convert to radians - panels should extend along the building edge direction
     // The building rotation is the heading of the longest edge
-    const angleRad = absoluteRotation * Math.PI / 180;
+    const angleRad = (absoluteRotation * Math.PI) / 180;
 
     // Calculate rotation vectors for positioning panels along the building edge
     // We want localX to move along the building edge direction
     const cos = Math.cos(angleRad);
     const sin = Math.sin(angleRad);
 
-    const origin = new window.google.maps.LatLng(array.origin.lat, array.origin.lng);
+    const origin = new window.google.maps.LatLng(
+      array.origin.lat,
+      array.origin.lng
+    );
     // console.log('Array origin:', origin.toString());
 
     // Generate panels
     let panelsCreated = 0;
-    
+
     // Calculate total rows and cols: left/up + origin + right/down
     const totalRows = array.rowsLeft + 1 + array.rowsRight;
     const totalCols = array.colsUp + 1 + array.colsDown;
-    
-    // console.log('🔧 Panel generation:', { 
-    //   totalRows, 
-    //   rowsLeft: array.rowsLeft, 
+
+    // console.log('🔧 Panel generation:', {
+    //   totalRows,
+    //   rowsLeft: array.rowsLeft,
     //   rowsRight: array.rowsRight,
     //   totalCols,
     //   colsUp: array.colsUp,
     //   colsDown: array.colsDown,
-    //   absoluteRotation 
+    //   absoluteRotation
     // });
-    
-    for (let row = 0; row < totalRows; row++) {
-      for (let col = 0; col < totalCols; col++) {
-        // Calculate panel position relative to origin
-        // Negative indices go left, positive go right
-        const rowOffset = row - array.rowsLeft;
-        
-        // Calculate distances to move from origin
-        // Negative indices go left/up, positive go right/down
-        const colOffset = col - array.colsUp;
-        
-        const distanceAlongEdge = rowOffset * dims.unitWidth;      // Along building edge (rows)
-        const distancePerpendicular = colOffset * dims.unitLength; // Perpendicular to edge (columns)
 
-        // if (row < 3 && col === 0) {
-        //   console.log(`🔧 Panel [${row},${col}] rowOffset=${rowOffset}, distanceAlongEdge=${distanceAlongEdge}m`);
-        // }
+    // Use panelCoords if available (irregular array), otherwise fall back to rectangular
+    const coordsToGenerate = [];
 
-        // Use Google Maps computeOffset to move along the building edge
-        // First move along the building edge (using building rotation as heading)
-        let panelOrigin = origin;
-        
-        if (distanceAlongEdge !== 0) {
-          // Move along building edge - use the building rotation directly as the heading
-          panelOrigin = window.google.maps.geometry.spherical.computeOffset(
-            panelOrigin,
-            Math.abs(distanceAlongEdge),
-            distanceAlongEdge > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
-          );
+    if (array.panelCoords && array.panelCoords.size > 0) {
+      // Irregular array - use specific coordinates
+      for (const coordStr of array.panelCoords) {
+        const [rowOffset, colOffset] = coordStr.split(",").map(Number);
+        coordsToGenerate.push({ rowOffset, colOffset });
+      }
+    } else {
+      // Rectangular array - generate all coordinates
+      for (let row = 0; row < totalRows; row++) {
+        for (let col = 0; col < totalCols; col++) {
+          const rowOffset = row - array.rowsLeft;
+          const colOffset = col - array.colsUp;
+          coordsToGenerate.push({ rowOffset, colOffset });
         }
-        
-        if (distancePerpendicular !== 0) {
-          // Move perpendicular to building edge (90° from building rotation)
-          panelOrigin = window.google.maps.geometry.spherical.computeOffset(
-            panelOrigin,
-            distancePerpendicular,
-            (absoluteRotation + 90) % 360
-          );
-        }
-        
-        // if (row < 3 && col === 0) {
-        //   console.log(`🔧 Panel [${row},${col}] final position:`, {
-        //     panelOrigin: panelOrigin.toString()
-        //   });
-        // }
+      }
+    }
 
-        // Create panel corners
-        const corners = this.createPanelCorners(panelOrigin, dims, absoluteRotation);
+    // Generate panels for each coordinate
+    for (const { rowOffset, colOffset } of coordsToGenerate) {
+      const distanceAlongEdge = rowOffset * dims.unitWidth; // Along building edge (rows)
+      const distancePerpendicular = colOffset * dims.unitLength; // Perpendicular to edge (columns)
 
-        // Check if panel is inside setback
-        const isInsideSetback = corners.every(corner =>
-          window.google.maps.geometry.poly.containsLocation(corner, this.setbackPolygon)
+      // if (row < 3 && col === 0) {
+      //   console.log(`🔧 Panel [${row},${col}] rowOffset=${rowOffset}, distanceAlongEdge=${distanceAlongEdge}m`);
+      // }
+
+      // Use Google Maps computeOffset to move along the building edge
+      // First move along the building edge (using building rotation as heading)
+      let panelOrigin = origin;
+
+      if (distanceAlongEdge !== 0) {
+        // Move along building edge - use the building rotation directly as the heading
+        panelOrigin = window.google.maps.geometry.spherical.computeOffset(
+          panelOrigin,
+          Math.abs(distanceAlongEdge),
+          distanceAlongEdge > 0
+            ? absoluteRotation
+            : (absoluteRotation + 180) % 360
         );
+      }
 
-        // Check if panel intersects building
-        const intersectsBuilding = corners.some(corner =>
-          window.google.maps.geometry.poly.containsLocation(corner, this.buildingPolygon)
+      if (distancePerpendicular !== 0) {
+        // Move perpendicular to building edge (90° from building rotation)
+        panelOrigin = window.google.maps.geometry.spherical.computeOffset(
+          panelOrigin,
+          distancePerpendicular,
+          (absoluteRotation + 90) % 360
         );
-        
-        // Check if panel is inside any obstruction setback
-        const isInObstructionSetback = this.obstructions && this.obstructions.length > 0 
-          ? corners.some(corner => {
+      }
+
+      // if (row < 3 && col === 0) {
+      //   console.log(`🔧 Panel [${row},${col}] final position:`, {
+      //     panelOrigin: panelOrigin.toString()
+      //   });
+      // }
+
+      // Create panel corners
+      const corners = this.createPanelCorners(
+        panelOrigin,
+        dims,
+        absoluteRotation
+      );
+
+      // Check if panel is inside setback
+      const isInsideSetback = corners.every((corner) =>
+        window.google.maps.geometry.poly.containsLocation(
+          corner,
+          this.setbackPolygon
+        )
+      );
+
+      // Check if panel intersects building
+      const intersectsBuilding = corners.some((corner) =>
+        window.google.maps.geometry.poly.containsLocation(
+          corner,
+          this.buildingPolygon
+        )
+      );
+
+      // Check if panel is inside any obstruction setback
+      const isInObstructionSetback =
+        this.obstructions && this.obstructions.length > 0
+          ? corners.some((corner) => {
               // Check each obstruction setback
               for (const obstruction of this.obstructions) {
-                if (!obstruction.setbackPath || obstruction.setbackPath.length < 3) {
+                if (
+                  !obstruction.setbackPath ||
+                  obstruction.setbackPath.length < 3
+                ) {
                   continue;
                 }
-                
+
                 // Create temporary polygon for checking
                 const setbackPolygon = new window.google.maps.Polygon({
-                  paths: obstruction.setbackPath
+                  paths: obstruction.setbackPath,
                 });
-                
-                const isInside = window.google.maps.geometry.poly.containsLocation(corner, setbackPolygon);
+
+                const isInside =
+                  window.google.maps.geometry.poly.containsLocation(
+                    corner,
+                    setbackPolygon
+                  );
                 setbackPolygon.setMap(null); // Clean up
-                
+
                 if (isInside) {
                   return true;
                 }
@@ -221,36 +314,35 @@ export class ArrayManager {
             })
           : false;
 
-        // if (row === 0 && col < 3) {
-        //   console.log(`Panel [${row},${col}]:`, {
-        //     isInsideSetback,
-        //     intersectsBuilding,
-        //     isInObstructionSetback,
-        //     panelOrigin: panelOrigin.toString()
-        //   });
-        // }
+      // if (row === 0 && col < 3) {
+      //   console.log(`Panel [${row},${col}]:`, {
+      //     isInsideSetback,
+      //     intersectsBuilding,
+      //     isInObstructionSetback,
+      //     panelOrigin: panelOrigin.toString()
+      //   });
+      // }
 
-        // Only create visible panels (not in obstruction setbacks)
-        if (isInsideSetback && intersectsBuilding && !isInObstructionSetback) {
-          const panel = new window.google.maps.Polygon({
-            paths: corners,
-            map: map,
-            fillColor: "#4CAF50", // Green preview color
-            fillOpacity: 0.6,      // More visible
-            strokeWeight: 2,       // Thicker border
-            strokeColor: "#FFFFFF", // White border
-            clickable: true,
-            zIndex: 1000
-          });
+      // Only create visible panels (not in obstruction setbacks)
+      if (isInsideSetback && intersectsBuilding && !isInObstructionSetback) {
+        const panel = new window.google.maps.Polygon({
+          paths: corners,
+          map: map,
+          fillColor: "#4CAF50", // Green preview color
+          fillOpacity: 0.6, // More visible
+          strokeWeight: 2, // Thicker border
+          strokeColor: "#FFFFFF", // White border
+          clickable: true,
+          zIndex: 1000,
+        });
 
-          panel.arrayId = array.id;
-          panel.arrayIndex = { row, col };
-          panel.isInsideSetback = true;
-          panel.state = 'normal';
+        panel.arrayId = array.id;
+        panel.arrayIndex = { rowOffset, colOffset };
+        panel.isInsideSetback = true;
+        panel.state = "normal";
 
-          array.panelPolygons.push(panel);
-          panelsCreated++;
-        }
+        array.panelPolygons.push(panel);
+        panelsCreated++;
       }
     }
 
@@ -265,12 +357,12 @@ export class ArrayManager {
     // Create panel corners by moving from origin along building-aligned directions
     // Panel width extends along the building edge (rotation direction)
     // Panel length extends perpendicular to the building edge (rotation + 90°)
-    
+
     const corners = [];
-    
+
     // Corner 0: origin (bottom-left)
     corners.push(origin);
-    
+
     // Corner 1: move along building edge by panel width (bottom-right)
     corners.push(
       window.google.maps.geometry.spherical.computeOffset(
@@ -279,7 +371,7 @@ export class ArrayManager {
         rotation
       )
     );
-    
+
     // Corner 2: from corner 1, move perpendicular by panel length (top-right)
     corners.push(
       window.google.maps.geometry.spherical.computeOffset(
@@ -288,7 +380,7 @@ export class ArrayManager {
         (rotation + 90) % 360
       )
     );
-    
+
     // Corner 3: from origin, move perpendicular by panel length (top-left)
     corners.push(
       window.google.maps.geometry.spherical.computeOffset(
@@ -297,7 +389,7 @@ export class ArrayManager {
         (rotation + 90) % 360
       )
     );
-    
+
     return corners;
   }
 
@@ -315,6 +407,10 @@ export class ArrayManager {
   updateArrayRowsLeft(array, count, map) {
     array.rowsLeft = Math.max(0, count);
     array.rows = array.rowsLeft + 1 + array.rowsRight;
+
+    // Update panelCoords to reflect new rectangular shape
+    this.initializePanelCoordsFromRect(array);
+
     // console.log('Updated left:', { rowsLeft: array.rowsLeft, totalRows: array.rows });
     return this.generateArrayPanels(array, map);
   }
@@ -325,6 +421,10 @@ export class ArrayManager {
   updateArrayRowsRight(array, count, map) {
     array.rowsRight = Math.max(0, count);
     array.rows = array.rowsLeft + 1 + array.rowsRight;
+
+    // Update panelCoords to reflect new rectangular shape
+    this.initializePanelCoordsFromRect(array);
+
     // console.log('Updated right:', { rowsRight: array.rowsRight, totalRows: array.rows });
     return this.generateArrayPanels(array, map);
   }
@@ -343,6 +443,10 @@ export class ArrayManager {
   updateArrayColsUp(array, count, map) {
     array.colsUp = Math.max(0, count);
     array.cols = array.colsUp + 1 + array.colsDown;
+
+    // Update panelCoords to reflect new rectangular shape
+    this.initializePanelCoordsFromRect(array);
+
     // console.log('Updated up:', { colsUp: array.colsUp, totalCols: array.cols });
     return this.generateArrayPanels(array, map);
   }
@@ -353,6 +457,10 @@ export class ArrayManager {
   updateArrayColsDown(array, count, map) {
     array.colsDown = Math.max(0, count);
     array.cols = array.colsUp + 1 + array.colsDown;
+
+    // Update panelCoords to reflect new rectangular shape
+    this.initializePanelCoordsFromRect(array);
+
     // console.log('Updated down:', { colsDown: array.colsDown, totalCols: array.cols });
     return this.generateArrayPanels(array, map);
   }
@@ -362,6 +470,238 @@ export class ArrayManager {
    */
   updateArrayRotation(array, rotation, map) {
     array.rotation = rotation % 360;
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Extend a specific row by adding panels to the left
+   */
+  extendRowLeft(array, rowOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this row
+    const rowPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (r === rowOffset) {
+        rowPanels.push(c);
+      }
+    }
+
+    if (rowPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    const minCol = Math.min(...rowPanels);
+
+    // Add panels to the left
+    for (let i = 1; i <= count; i++) {
+      array.panelCoords.add(`${rowOffset},${minCol - i}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Extend a specific row by adding panels to the right
+   */
+  extendRowRight(array, rowOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this row
+    const rowPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (r === rowOffset) {
+        rowPanels.push(c);
+      }
+    }
+
+    if (rowPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    const maxCol = Math.max(...rowPanels);
+
+    // Add panels to the right
+    for (let i = 1; i <= count; i++) {
+      array.panelCoords.add(`${rowOffset},${maxCol + i}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Shrink a specific row by removing panels from the left
+   */
+  shrinkRowLeft(array, rowOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this row
+    const rowPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (r === rowOffset) {
+        rowPanels.push(c);
+      }
+    }
+
+    if (rowPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    rowPanels.sort((a, b) => a - b);
+
+    // Remove panels from the left
+    for (let i = 0; i < Math.min(count, rowPanels.length - 1); i++) {
+      array.panelCoords.delete(`${rowOffset},${rowPanels[i]}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Shrink a specific row by removing panels from the right
+   */
+  shrinkRowRight(array, rowOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this row
+    const rowPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (r === rowOffset) {
+        rowPanels.push(c);
+      }
+    }
+
+    if (rowPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    rowPanels.sort((a, b) => b - a);
+
+    // Remove panels from the right
+    for (let i = 0; i < Math.min(count, rowPanels.length - 1); i++) {
+      array.panelCoords.delete(`${rowOffset},${rowPanels[i]}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Extend a specific column by adding panels upward
+   */
+  extendColUp(array, colOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this column
+    const colPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (c === colOffset) {
+        colPanels.push(r);
+      }
+    }
+
+    if (colPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    const minRow = Math.min(...colPanels);
+
+    // Add panels upward
+    for (let i = 1; i <= count; i++) {
+      array.panelCoords.add(`${minRow - i},${colOffset}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Extend a specific column by adding panels downward
+   */
+  extendColDown(array, colOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this column
+    const colPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (c === colOffset) {
+        colPanels.push(r);
+      }
+    }
+
+    if (colPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    const maxRow = Math.max(...colPanels);
+
+    // Add panels downward
+    for (let i = 1; i <= count; i++) {
+      array.panelCoords.add(`${maxRow + i},${colOffset}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Shrink a specific column by removing panels from the top
+   */
+  shrinkColUp(array, colOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this column
+    const colPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (c === colOffset) {
+        colPanels.push(r);
+      }
+    }
+
+    if (colPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    colPanels.sort((a, b) => a - b);
+
+    // Remove panels from the top
+    for (let i = 0; i < Math.min(count, colPanels.length - 1); i++) {
+      array.panelCoords.delete(`${colPanels[i]},${colOffset}`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Shrink a specific column by removing panels from the bottom
+   */
+  shrinkColDown(array, colOffset, count, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this column
+    const colPanels = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (c === colOffset) {
+        colPanels.push(r);
+      }
+    }
+
+    if (colPanels.length === 0) return this.generateArrayPanels(array, map);
+
+    colPanels.sort((a, b) => b - a);
+
+    // Remove panels from the bottom
+    for (let i = 0; i < Math.min(count, colPanels.length - 1); i++) {
+      array.panelCoords.delete(`${colPanels[i]},${colOffset}`);
+    }
+
     return this.generateArrayPanels(array, map);
   }
 
@@ -377,10 +717,10 @@ export class ArrayManager {
    * Delete an array
    */
   deleteArray(arrayId) {
-    const index = this.arrays.findIndex(a => a.id === arrayId);
+    const index = this.arrays.findIndex((a) => a.id === arrayId);
     if (index !== -1) {
       const array = this.arrays[index];
-      array.panelPolygons.forEach(panel => panel.setMap(null));
+      array.panelPolygons.forEach((panel) => panel.setMap(null));
       this.arrays.splice(index, 1);
     }
   }
@@ -389,23 +729,23 @@ export class ArrayManager {
    * Get array by ID
    */
   getArray(arrayId) {
-    return this.arrays.find(a => a.id === arrayId);
+    return this.arrays.find((a) => a.id === arrayId);
   }
 
   /**
    * Select an array (highlight it)
    */
   selectArray(arrayId) {
-    this.arrays.forEach(array => {
+    this.arrays.forEach((array) => {
       const isSelected = array.id === arrayId;
-      array.state = isSelected ? 'selected' : 'active';
-      
-      array.panelPolygons.forEach(panel => {
-        if (panel.state !== 'obstructed') {
+      array.state = isSelected ? "selected" : "active";
+
+      array.panelPolygons.forEach((panel) => {
+        if (panel.state !== "obstructed") {
           panel.setOptions({
             strokeWeight: isSelected ? 2 : 1,
             strokeColor: isSelected ? "#00FF00" : "#000000",
-            fillOpacity: isSelected ? 0.5 : 0.35
+            fillOpacity: isSelected ? 0.5 : 0.35,
           });
         }
       });
@@ -419,17 +759,17 @@ export class ArrayManager {
     const array = this.getArray(arrayId);
     if (!array) return;
 
-    const panel = array.panelPolygons.find(p => 
-      p.arrayIndex.row === row && p.arrayIndex.col === col
+    const panel = array.panelPolygons.find(
+      (p) => p.arrayIndex.row === row && p.arrayIndex.col === col
     );
 
     if (panel) {
-      panel.state = 'obstructed';
+      panel.state = "obstructed";
       panel.obstructionHeight = height;
       panel.setOptions({
         fillColor: "#FF0000",
         fillOpacity: 0.5,
-        zIndex: 1002
+        zIndex: 1002,
       });
 
       // Track obstruction in array
@@ -444,22 +784,22 @@ export class ArrayManager {
     const array = this.getArray(arrayId);
     if (!array) return;
 
-    const panel = array.panelPolygons.find(p => 
-      p.arrayIndex.row === row && p.arrayIndex.col === col
+    const panel = array.panelPolygons.find(
+      (p) => p.arrayIndex.row === row && p.arrayIndex.col === col
     );
 
     if (panel) {
-      panel.state = 'normal';
+      panel.state = "normal";
       delete panel.obstructionHeight;
       panel.setOptions({
         fillColor: "#0000FF",
         fillOpacity: 0.35,
-        zIndex: 1000
+        zIndex: 1000,
       });
 
       // Remove from obstructions list
       array.obstructions = array.obstructions.filter(
-        o => !(o.row === row && o.col === col)
+        (o) => !(o.row === row && o.col === col)
       );
     }
   }
@@ -475,8 +815,8 @@ export class ArrayManager {
    * Clear all arrays
    */
   clearAllArrays() {
-    this.arrays.forEach(array => {
-      array.panelPolygons.forEach(panel => panel.setMap(null));
+    this.arrays.forEach((array) => {
+      array.panelPolygons.forEach((panel) => panel.setMap(null));
     });
     this.arrays = [];
     this.nextArrayId = 1;
