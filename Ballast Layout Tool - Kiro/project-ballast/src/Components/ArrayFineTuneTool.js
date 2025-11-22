@@ -192,7 +192,7 @@ const ArrayFineTuneTool = ({
           (absoluteRotation + 90) % 360
         );
 
-        // Create left arrow
+        // Create left arrow (points perpendicular - up/negative direction)
         const leftArrow = new window.google.maps.Marker({
           position: leftPos,
           map: mapRef.current,
@@ -204,14 +204,14 @@ const ArrayFineTuneTool = ({
             strokeWeight: 2,
             scale: 2,
             anchor: new window.google.maps.Point(0, 0),
-            rotation: (absoluteRotation + 180 + 90) % 360,
+            rotation: (absoluteRotation + 270 + 90) % 360, // Point perpendicular up
           },
           draggable: true,
           clickable: false,
           zIndex: 10002,
         });
 
-        // Create right arrow
+        // Create right arrow (points perpendicular - down/positive direction)
         const rightArrow = new window.google.maps.Marker({
           position: rightPos,
           map: mapRef.current,
@@ -223,7 +223,7 @@ const ArrayFineTuneTool = ({
             strokeWeight: 2,
             scale: 2,
             anchor: new window.google.maps.Point(0, 0),
-            rotation: (absoluteRotation + 90) % 360,
+            rotation: (absoluteRotation + 90 + 90) % 360, // Point perpendicular down
           },
           draggable: true,
           clickable: false,
@@ -302,7 +302,7 @@ const ArrayFineTuneTool = ({
           absoluteRotation
         );
 
-        // Create up arrow
+        // Create up arrow (points along edge - left/negative direction)
         const upArrow = new window.google.maps.Marker({
           position: upPos,
           map: mapRef.current,
@@ -314,14 +314,14 @@ const ArrayFineTuneTool = ({
             strokeWeight: 2,
             scale: 2,
             anchor: new window.google.maps.Point(0, 0),
-            rotation: (absoluteRotation + 270 + 90) % 360,
+            rotation: (absoluteRotation + 180 + 90) % 360, // Point along edge left
           },
           draggable: true,
           clickable: false,
           zIndex: 10002,
         });
 
-        // Create down arrow
+        // Create down arrow (points along edge - right/positive direction)
         const downArrow = new window.google.maps.Marker({
           position: downPos,
           map: mapRef.current,
@@ -333,7 +333,7 @@ const ArrayFineTuneTool = ({
             strokeWeight: 2,
             scale: 2,
             anchor: new window.google.maps.Point(0, 0),
-            rotation: (absoluteRotation + 90 + 90) % 360,
+            rotation: (absoluteRotation + 90) % 360, // Point along edge right
           },
           draggable: true,
           clickable: false,
