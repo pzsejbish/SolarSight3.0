@@ -82,14 +82,18 @@ const ArrayCreationTool = ({
       if (currentArray.downArrow) {
         currentArray.downArrow.setVisible(true);
       }
-    } else if (creationState === "origin" || creationState === "rotate") {
-      // Hide all arrows during origin placement and rotation
+    } else if (
+      creationState === "origin" ||
+      creationState === "rotate" ||
+      creationState === "fine-tune"
+    ) {
+      // Hide all arrows during origin placement, rotation, and fine-tune
       if (currentArray.leftArrow) currentArray.leftArrow.setVisible(false);
       if (currentArray.rightArrow) currentArray.rightArrow.setVisible(false);
       if (currentArray.upArrow) currentArray.upArrow.setVisible(false);
       if (currentArray.downArrow) currentArray.downArrow.setVisible(false);
-    } else if (creationState === "idle") {
-      // Hide all arrows when idle (array saved)
+    } else if (creationState === "idle" || creationState === "finalize") {
+      // Hide all arrows when idle or finalizing (array saved)
       if (currentArray.leftArrow) currentArray.leftArrow.setVisible(false);
       if (currentArray.rightArrow) currentArray.rightArrow.setVisible(false);
       if (currentArray.upArrow) currentArray.upArrow.setVisible(false);

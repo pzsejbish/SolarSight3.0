@@ -10,6 +10,7 @@ import {
 import { ArrayManager } from "./utils/ArrayManager";
 import { ArrayToGridReconciler } from "./utils/ArrayToGridReconciler";
 import ArrayCreationTool from "./Components/ArrayCreationTool";
+import ArrayFineTuneTool from "./Components/ArrayFineTuneTool";
 import ArrayControlPanel from "./Components/ArrayControlPanel";
 import ObstructionDrawingTool from "./Components/ObstructionDrawingTool";
 import WorkflowControlPanel from "./Components/WorkflowControlPanel";
@@ -132,8 +133,11 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
   const [useArrayMode, setUseArrayMode] = useState(true); // Toggle between old/new system
 
   // Array creation sub-workflow state
-  const [arrayCreationStep, setArrayCreationStep] = useState("idle"); // 'idle' | 'origin' | 'rows' | 'columns' | 'finalize'
+  const [arrayCreationStep, setArrayCreationStep] = useState("idle"); // 'idle' | 'origin' | 'rotate' | 'rows' | 'columns' | 'fine-tune' | 'finalize'
   const [currentArrayDraft, setCurrentArrayDraft] = useState(null); // Array being created
+  const [selectedPanelForFineTune, setSelectedPanelForFineTune] =
+    useState(null); // Panel selected for fine-tuning
+  const [fineTuneMode, setFineTuneMode] = useState("row"); // 'row' | 'column'
 
   // Obstruction workflow state
   const [workflowState, setWorkflowState] = useState("building"); // 'building' | 'building-edit' | 'obstructions' | 'obstructions-edit' | 'arrays'
@@ -1004,6 +1008,9 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
       // Move from rows to columns
       setArrayCreationStep("columns");
     } else if (arrayCreationStep === "columns" && currentArrayDraft) {
+      // Move to fine-tune step
+      setArrayCreationStep("fine-tune");
+    } else if (arrayCreationStep === "fine-tune" && currentArrayDraft) {
       // Move to finalize step
       setArrayCreationStep("finalize");
     } else if (arrayCreationStep === "finalize" && currentArrayDraft) {
@@ -2904,20 +2911,38 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
 
         {/* Array Creation Tool Overlay (NEW) */}
         {useArrayMode && arrayManager && workflowState === "arrays" && (
-          <ArrayCreationTool
-            mapRef={mapRef}
-            arrayManager={arrayManager}
-            isActive={isArrayCreationMode}
-            arrayCreationStep={arrayCreationStep}
-            currentArrayDraft={currentArrayDraft}
-            onArrayCreated={handleArrayCreated}
-            onArrayUpdated={handleArrayUpdated}
-            buildingRotation={
-              selectedPolygonIndex !== null && polygons[selectedPolygonIndex]
-                ? polygons[selectedPolygonIndex].totalRotationAngle
-                : 0
-            }
-          />
+          <>
+            <ArrayCreationTool
+              mapRef={mapRef}
+              arrayManager={arrayManager}
+              isActive={
+                isArrayCreationMode && arrayCreationStep !== "fine-tune"
+              }
+              arrayCreationStep={arrayCreationStep}
+              currentArrayDraft={currentArrayDraft}
+              onArrayCreated={handleArrayCreated}
+              onArrayUpdated={handleArrayUpdated}
+              buildingRotation={
+                selectedPolygonIndex !== null && polygons[selectedPolygonIndex]
+                  ? polygons[selectedPolygonIndex].totalRotationAngle
+                  : 0
+              }
+            />
+            <ArrayFineTuneTool
+              mapRef={mapRef}
+              arrayManager={arrayManager}
+              currentArray={currentArrayDraft}
+              isActive={
+                isArrayCreationMode && arrayCreationStep === "fine-tune"
+              }
+              onArrayUpdated={handleArrayUpdated}
+              buildingRotation={
+                selectedPolygonIndex !== null && polygons[selectedPolygonIndex]
+                  ? polygons[selectedPolygonIndex].totalRotationAngle
+                  : 0
+              }
+            />
+          </>
         )}
 
         {/* Workflow panels moved to sidebar */}
