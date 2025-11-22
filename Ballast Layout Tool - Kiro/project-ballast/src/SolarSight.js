@@ -1116,7 +1116,10 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
     );
 
     if (arrayCreationStep === "finalize" && currentArrayDraft) {
-      // Go back to columns from finalize (when editing)
+      // Go back to fine-tune from finalize
+      setArrayCreationStep("fine-tune");
+    } else if (arrayCreationStep === "fine-tune" && currentArrayDraft) {
+      // Go back to columns from fine-tune
       setArrayCreationStep("columns");
     } else if (arrayCreationStep === "columns" && currentArrayDraft) {
       // Go back to rows
@@ -1356,13 +1359,20 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
         array.panelPolygons.length,
         "panels currently"
       );
+
+      // Initialize panelCoords if not present (for arrays created before fine-tune feature)
+      if (!array.panelCoords || array.panelCoords.size === 0) {
+        console.log("✏️ Initializing panelCoords for editing");
+        arrayManager.initializePanelCoordsFromRect(array);
+      }
+
       setCurrentArrayDraft(array);
 
       // Enter creation mode
       setIsArrayCreationMode(true);
 
-      // Jump to the last step (finalize) so user can navigate back through the workflow
-      setArrayCreationStep("finalize");
+      // Start at fine-tune step for editing (most common use case)
+      setArrayCreationStep("fine-tune");
 
       // Select this array
       setSelectedArrayId(arrayId);
