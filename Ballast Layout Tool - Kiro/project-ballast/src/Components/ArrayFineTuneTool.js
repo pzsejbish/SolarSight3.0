@@ -14,7 +14,7 @@ const ArrayFineTuneTool = ({
   buildingRotation,
 }) => {
   const [hoveredPanelCoords, setHoveredPanelCoords] = useState(null); // { rowOffset, colOffset }
-  const [mode, setMode] = useState("row"); // 'row' | 'column'
+  const [mode, setMode] = useState("row"); // 'row' | 'column' | 'toggle'
   const [fineTuneArrows, setFineTuneArrows] = useState(null);
 
   // Handle panel hover
@@ -28,6 +28,30 @@ const ArrayFineTuneTool = ({
       setHoveredPanelCoords(panelIndex);
     },
     [isActive, currentArray]
+  );
+
+  // Handle panel click for toggling
+  const handlePanelClick = useCallback(
+    (panelIndex) => {
+      if (!isActive || !currentArray || mode !== "toggle") {
+        return;
+      }
+
+      console.log("🎯 Panel click detected:", panelIndex);
+      const { rowOffset, colOffset } = panelIndex;
+
+      arrayManager.togglePanel(
+        currentArray,
+        rowOffset,
+        colOffset,
+        mapRef.current
+      );
+
+      if (onArrayUpdated) {
+        onArrayUpdated(currentArray);
+      }
+    },
+    [isActive, currentArray, mode, arrayManager, mapRef, onArrayUpdated]
   );
 
   // Handle panel hover out
@@ -61,7 +85,22 @@ const ArrayFineTuneTool = ({
     currentArray.panelPolygons.forEach((panel) => {
       const { rowOffset: r, colOffset: c } = panel.arrayIndex;
 
-      if (mode === "row" && r === rowOffset) {
+      if (mode === "toggle") {
+        // In toggle mode, highlight individual panel
+        if (r === rowOffset && c === colOffset) {
+          panel.setOptions({
+            strokeColor: "#FF9800",
+            strokeWeight: 3,
+            fillOpacity: 0.8,
+          });
+        } else {
+          panel.setOptions({
+            strokeColor: "#FFFFFF",
+            strokeWeight: 2,
+            fillOpacity: 0.6,
+          });
+        }
+      } else if (mode === "row" && r === rowOffset) {
         // Highlight this row
         panel.setOptions({
           strokeColor: "#4CAF50",
@@ -85,8 +124,10 @@ const ArrayFineTuneTool = ({
       }
     });
 
-    // Create arrows at the ends of the hovered row/column
-    createFineTuneArrows(rowOffset, colOffset);
+    // Create arrows at the ends of the hovered row/column (not in toggle mode)
+    if (mode !== "toggle") {
+      createFineTuneArrows(rowOffset, colOffset);
+    }
   }, [hoveredPanelCoords, mode, currentArray]);
 
   // Create arrows for fine-tuning
@@ -715,7 +756,7 @@ const ArrayFineTuneTool = ({
     });
   };
 
-  // Setup panel hover listeners directly on each panel
+  // Setup panel hover and click listeners directly on each panel
   // Re-run whenever panels change (after fine-tuning)
   useEffect(() => {
     if (!isActive || !mapRef.current || !currentArray) return;
@@ -733,9 +774,10 @@ const ArrayFineTuneTool = ({
       disableDoubleClickZoom: false,
     });
 
-    // Add hover listeners directly to each panel
+    // Add hover and click listeners directly to each panel
     const panelMouseOverListeners = [];
     const panelMouseOutListeners = [];
+    const panelClickListeners = [];
 
     currentArray.panelPolygons.forEach((panel) => {
       panel.setOptions({
@@ -743,28 +785,37 @@ const ArrayFineTuneTool = ({
         zIndex: 1001, // Ensure panels are above other elements
       });
 
-      const mouseOverListener = panel.addListener("mouseover", (event) => {
+      const mouseOverListener = panel.addListener("mouseover", () => {
         console.log("✅ Panel hover!", panel.arrayIndex);
         handlePanelHover(panel.arrayIndex);
       });
 
-      const mouseOutListener = panel.addListener("mouseout", (event) => {
+      const mouseOutListener = panel.addListener("mouseout", () => {
         console.log("✅ Panel hover out!", panel.arrayIndex);
         handlePanelHoverOut();
       });
 
+      const clickListener = panel.addListener("click", () => {
+        console.log("✅ Panel click!", panel.arrayIndex);
+        handlePanelClick(panel.arrayIndex);
+      });
+
       panelMouseOverListeners.push(mouseOverListener);
       panelMouseOutListeners.push(mouseOutListener);
+      panelClickListeners.push(clickListener);
     });
 
     return () => {
       console.log("🔧 Cleaning up fine-tune hover listeners");
 
-      // Remove all panel hover listeners
+      // Remove all panel listeners
       panelMouseOverListeners.forEach((listener) => {
         window.google.maps.event.removeListener(listener);
       });
       panelMouseOutListeners.forEach((listener) => {
+        window.google.maps.event.removeListener(listener);
+      });
+      panelClickListeners.forEach((listener) => {
         window.google.maps.event.removeListener(listener);
       });
     };
@@ -775,6 +826,7 @@ const ArrayFineTuneTool = ({
     currentArray?.panelPolygons.length,
     handlePanelHover,
     handlePanelHoverOut,
+    handlePanelClick,
   ]);
 
   // Cleanup arrows when component unmounts or becomes inactive
@@ -794,6 +846,14 @@ const ArrayFineTuneTool = ({
       setHoveredPanelCoords(null);
     }
   }, [isActive, fineTuneArrows]);
+
+  // Hide arrows when in toggle mode
+  useEffect(() => {
+    if (mode === "toggle" && fineTuneArrows) {
+      fineTuneArrows.forEach((arrow) => arrow.setMap(null));
+      setFineTuneArrows(null);
+    }
+  }, [mode, fineTuneArrows]);
 
   // Render mode toggle UI
   if (!isActive || !currentArray) {
@@ -841,9 +901,11 @@ const ArrayFineTuneTool = ({
           fontStyle: "italic",
         }}
       >
-        Hover over panels to adjust rows/columns
+        {mode === "toggle"
+          ? "Click panels to add/remove them"
+          : "Hover over panels to adjust rows/columns"}
       </div>
-      <div style={{ display: "flex", gap: "10px" }}>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <button
           onClick={() => setMode("row")}
           style={{
@@ -874,11 +936,27 @@ const ArrayFineTuneTool = ({
         >
           Column
         </button>
+        <button
+          onClick={() => setMode("toggle")}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: mode === "toggle" ? "#FF9800" : "#E0E0E0",
+            color: mode === "toggle" ? "white" : "#333",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: "600",
+          }}
+        >
+          Toggle
+        </button>
       </div>
       {hoveredPanelCoords && (
         <div style={{ marginTop: "10px", fontSize: "11px", color: "#666" }}>
-          Hovering: Row {hoveredPanelCoords.rowOffset}, Col{" "}
-          {hoveredPanelCoords.colOffset}
+          {mode === "toggle"
+            ? `Click to toggle: Row ${hoveredPanelCoords.rowOffset}, Col ${hoveredPanelCoords.colOffset}`
+            : `Hovering: Row ${hoveredPanelCoords.rowOffset}, Col ${hoveredPanelCoords.colOffset}`}
         </div>
       )}
     </div>

@@ -706,6 +706,29 @@ export class ArrayManager {
   }
 
   /**
+   * Toggle a specific panel on/off
+   */
+  togglePanel(array, rowOffset, colOffset, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    const coordStr = `${rowOffset},${colOffset}`;
+
+    if (array.panelCoords.has(coordStr)) {
+      // Panel exists - remove it
+      array.panelCoords.delete(coordStr);
+      console.log(`🔧 Panel toggled OFF: [${rowOffset},${colOffset}]`);
+    } else {
+      // Panel doesn't exist - add it
+      array.panelCoords.add(coordStr);
+      console.log(`🔧 Panel toggled ON: [${rowOffset},${colOffset}]`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
    * Move array to new origin
    */
   moveArray(array, newOriginLatLng, map) {
