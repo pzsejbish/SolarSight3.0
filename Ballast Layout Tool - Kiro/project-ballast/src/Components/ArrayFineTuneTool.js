@@ -16,53 +16,21 @@ const ArrayFineTuneTool = ({
   const [hoveredPanelCoords, setHoveredPanelCoords] = useState(null); // { rowOffset, colOffset }
   const [mode, setMode] = useState("row"); // 'row' | 'column' | 'toggle'
   const [fineTuneArrows, setFineTuneArrows] = useState(null);
+  const [isDraggingArrow, setIsDraggingArrow] = useState(false);
+  const [updateCounter, setUpdateCounter] = useState(0);
 
-  // Handle panel hover
-  const handlePanelHover = useCallback(
-    (panelIndex) => {
-      if (!isActive || !currentArray) {
-        return;
-      }
+  // Store listeners in a ref so we can access them without causing re-renders
+  const listenersRef = React.useRef([]);
 
-      console.log("🎯 Panel hover detected:", panelIndex);
-      setHoveredPanelCoords(panelIndex);
-    },
-    [isActive, currentArray]
-  );
+  // Use refs for values that listeners need but shouldn't trigger re-setup
+  const modeRef = React.useRef(mode);
+  const isDraggingArrowRef = React.useRef(isDraggingArrow);
 
-  // Handle panel click for toggling
-  const handlePanelClick = useCallback(
-    (panelIndex) => {
-      if (!isActive || !currentArray || mode !== "toggle") {
-        return;
-      }
-
-      console.log("🎯 Panel click detected:", panelIndex);
-      const { rowOffset, colOffset } = panelIndex;
-
-      arrayManager.togglePanel(
-        currentArray,
-        rowOffset,
-        colOffset,
-        mapRef.current
-      );
-
-      if (onArrayUpdated) {
-        onArrayUpdated(currentArray);
-      }
-    },
-    [isActive, currentArray, mode, arrayManager, mapRef, onArrayUpdated]
-  );
-
-  // Handle panel hover out
-  const handlePanelHoverOut = useCallback(() => {
-    if (!isActive || !currentArray) {
-      return;
-    }
-
-    console.log("🎯 Panel hover out");
-    setHoveredPanelCoords(null);
-  }, [isActive, currentArray]);
+  // Keep refs in sync
+  useEffect(() => {
+    modeRef.current = mode;
+    isDraggingArrowRef.current = isDraggingArrow;
+  }, [mode, isDraggingArrow]);
 
   // Highlight row or column based on mode when hovering
   useEffect(() => {
@@ -389,6 +357,7 @@ const ArrayFineTuneTool = ({
     let lastPanelCount = 0;
 
     arrow.addListener("dragstart", () => {
+      setIsDraggingArrow(true);
       const origin = new window.google.maps.LatLng(
         currentArray.origin.lat,
         currentArray.origin.lng
@@ -530,6 +499,8 @@ const ArrayFineTuneTool = ({
     });
 
     arrow.addListener("dragend", () => {
+      setIsDraggingArrow(false);
+      setUpdateCounter((c) => c + 1); // Force listener re-setup after drag
       // Snap arrow back to the row axis
       const dims = arrayManager.getPanelDimensions();
       const absoluteRotation = buildingRotation + (currentArray.rotation || 0);
@@ -580,6 +551,7 @@ const ArrayFineTuneTool = ({
     let lastPanelCount = 0;
 
     arrow.addListener("dragstart", () => {
+      setIsDraggingArrow(true);
       const origin = new window.google.maps.LatLng(
         currentArray.origin.lat,
         currentArray.origin.lng
@@ -721,6 +693,8 @@ const ArrayFineTuneTool = ({
     });
 
     arrow.addListener("dragend", () => {
+      setIsDraggingArrow(false);
+      setUpdateCounter((c) => c + 1); // Force listener re-setup after drag
       // Snap arrow back to the column axis
       const dims = arrayManager.getPanelDimensions();
       const absoluteRotation = buildingRotation + (currentArray.rotation || 0);
@@ -757,15 +731,30 @@ const ArrayFineTuneTool = ({
   };
 
   // Setup panel hover and click listeners directly on each panel
-  // Re-run whenever panels change (after fine-tuning)
   useEffect(() => {
-    if (!isActive || !mapRef.current || !currentArray) return;
+    if (!isActive || !mapRef.current || !currentArray) {
+      // Clean up existing listeners
+      listenersRef.current.forEach((listener) => {
+        window.google.maps.event.removeListener(listener);
+      });
+      listenersRef.current = [];
+      return;
+    }
 
     const map = mapRef.current;
+    const setupId = Date.now();
     console.log("🔧 Setting up fine-tune hover listeners", {
+      setupId,
       panelCount: currentArray.panelPolygons.length,
-      timestamp: Date.now(),
+      mode,
+      firstPanelHasIndex: !!currentArray.panelPolygons[0]?.arrayIndex,
     });
+
+    // Clean up existing listeners first
+    listenersRef.current.forEach((listener) => {
+      window.google.maps.event.removeListener(listener);
+    });
+    listenersRef.current = [];
 
     // Keep map dragging enabled for better UX
     map.setOptions({
@@ -775,59 +764,103 @@ const ArrayFineTuneTool = ({
     });
 
     // Add hover and click listeners directly to each panel
-    const panelMouseOverListeners = [];
-    const panelMouseOutListeners = [];
-    const panelClickListeners = [];
+    currentArray.panelPolygons.forEach((panel, idx) => {
+      if (!panel.arrayIndex) {
+        console.error("❌ Panel missing arrayIndex!", idx);
+        return;
+      }
 
-    currentArray.panelPolygons.forEach((panel) => {
       panel.setOptions({
         clickable: true,
         zIndex: 1001, // Ensure panels are above other elements
       });
 
       const mouseOverListener = panel.addListener("mouseover", () => {
-        console.log("✅ Panel hover!", panel.arrayIndex);
-        handlePanelHover(panel.arrayIndex);
+        console.log(
+          "✅ Panel hover! Setup:",
+          setupId,
+          "Panel:",
+          panel.arrayIndex
+        );
+        setHoveredPanelCoords(panel.arrayIndex);
       });
 
       const mouseOutListener = panel.addListener("mouseout", () => {
         console.log("✅ Panel hover out!", panel.arrayIndex);
-        handlePanelHoverOut();
+
+        // Don't clear if dragging (use ref)
+        if (isDraggingArrowRef.current) {
+          console.log("🎯 Ignored - dragging");
+          return;
+        }
+
+        // Small delay to prevent flickering
+        setTimeout(() => {
+          if (!isDraggingArrowRef.current) {
+            setHoveredPanelCoords((current) => {
+              // Only clear if still on the same panel
+              return current?.rowOffset === panel.arrayIndex.rowOffset &&
+                current?.colOffset === panel.arrayIndex.colOffset
+                ? null
+                : current;
+            });
+          }
+        }, 50);
       });
 
       const clickListener = panel.addListener("click", () => {
+        // Use ref to check mode
+        if (modeRef.current !== "toggle") return;
         console.log("✅ Panel click!", panel.arrayIndex);
-        handlePanelClick(panel.arrayIndex);
+
+        const { rowOffset, colOffset } = panel.arrayIndex;
+        arrayManager.togglePanel(
+          currentArray,
+          rowOffset,
+          colOffset,
+          mapRef.current
+        );
+
+        if (onArrayUpdated) {
+          onArrayUpdated(currentArray);
+        }
+
+        // Force listener re-setup after toggle
+        setUpdateCounter((c) => c + 1);
       });
 
-      panelMouseOverListeners.push(mouseOverListener);
-      panelMouseOutListeners.push(mouseOutListener);
-      panelClickListeners.push(clickListener);
+      listenersRef.current.push(
+        mouseOverListener,
+        mouseOutListener,
+        clickListener
+      );
     });
 
     return () => {
       console.log("🔧 Cleaning up fine-tune hover listeners");
-
-      // Remove all panel listeners
-      panelMouseOverListeners.forEach((listener) => {
+      listenersRef.current.forEach((listener) => {
         window.google.maps.event.removeListener(listener);
       });
-      panelMouseOutListeners.forEach((listener) => {
-        window.google.maps.event.removeListener(listener);
-      });
-      panelClickListeners.forEach((listener) => {
-        window.google.maps.event.removeListener(listener);
-      });
+      listenersRef.current = [];
     };
   }, [
     isActive,
+    updateCounter, // Force re-setup when counter changes
+    currentArray?.panelPolygons?.length, // Also check length
+    arrayManager,
     mapRef,
-    currentArray,
-    currentArray?.panelPolygons.length,
-    handlePanelHover,
-    handlePanelHoverOut,
-    handlePanelClick,
+    onArrayUpdated,
+    // mode and isDraggingArrow are accessed via refs, so not needed here
   ]);
+
+  // Debug: log when dependencies change
+  useEffect(() => {
+    console.log("📊 Listener dependencies changed:", {
+      isActive,
+      updateCounter,
+      panelCount: currentArray?.panelPolygons?.length,
+    });
+  }, [isActive, updateCounter, currentArray?.panelPolygons?.length]);
 
   // Cleanup arrows when component unmounts or becomes inactive
   useEffect(() => {
