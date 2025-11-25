@@ -40,7 +40,7 @@ const ArrayWorkflowPanel = ({
     {
       id: "fine-tune",
       label: "Fine-Tune Array",
-      description: "Click panel, select row/col, drag arrows to adjust",
+      description: "Hover over panels, drag arrows to adjust rows/columns",
     },
     {
       id: "finalize",
@@ -335,8 +335,8 @@ const ArrayWorkflowPanel = ({
             textAlign: "center",
           }}
         >
-          🎯 Click any panel to select it, then use arrows to extend/shrink that
-          row or column
+          🎯 Hover over any panel to see arrows, then drag arrows to
+          extend/shrink that row or column
         </div>
       )}
     </div>

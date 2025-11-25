@@ -135,9 +135,6 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
   // Array creation sub-workflow state
   const [arrayCreationStep, setArrayCreationStep] = useState("idle"); // 'idle' | 'origin' | 'rotate' | 'rows' | 'columns' | 'fine-tune' | 'finalize'
   const [currentArrayDraft, setCurrentArrayDraft] = useState(null); // Array being created
-  const [selectedPanelForFineTune, setSelectedPanelForFineTune] =
-    useState(null); // Panel selected for fine-tuning
-  const [fineTuneMode, setFineTuneMode] = useState("row"); // 'row' | 'column'
 
   // Obstruction workflow state
   const [workflowState, setWorkflowState] = useState("building"); // 'building' | 'building-edit' | 'obstructions' | 'obstructions-edit' | 'arrays'
