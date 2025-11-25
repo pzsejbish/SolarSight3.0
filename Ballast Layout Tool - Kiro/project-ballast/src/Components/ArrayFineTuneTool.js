@@ -143,8 +143,9 @@ const ArrayFineTuneTool = ({
         const leftColDistance = minCol * dims.unitLength;
         const rightColDistance = maxCol * dims.unitLength;
 
-        // Left arrow position
+        // Left arrow position - at the LEFT edge of the leftmost panel in this row
         let leftPos = origin;
+        // Move to the row
         if (rowDistance !== 0) {
           leftPos = window.google.maps.geometry.spherical.computeOffset(
             leftPos,
@@ -152,6 +153,7 @@ const ArrayFineTuneTool = ({
             rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
           );
         }
+        // Move to the leftmost column
         if (leftColDistance !== 0) {
           leftPos = window.google.maps.geometry.spherical.computeOffset(
             leftPos,
@@ -161,15 +163,17 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 270) % 360
           );
         }
-        // Position arrow at the edge of the last panel (one unit length away in the negative direction)
+        // Now we're at the origin corner of the leftmost panel
+        // Move to the center of the panel along the row direction
         leftPos = window.google.maps.geometry.spherical.computeOffset(
           leftPos,
-          dims.unitLength,
-          (absoluteRotation + 270) % 360
+          dims.unitWidth / 2,
+          rowDistance >= 0 ? absoluteRotation : (absoluteRotation + 180) % 360
         );
 
-        // Right arrow position
+        // Right arrow position - at the RIGHT edge of the rightmost panel in this row
         let rightPos = origin;
+        // Move to the row
         if (rowDistance !== 0) {
           rightPos = window.google.maps.geometry.spherical.computeOffset(
             rightPos,
@@ -177,6 +181,7 @@ const ArrayFineTuneTool = ({
             rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
           );
         }
+        // Move to the rightmost column
         if (rightColDistance !== 0) {
           rightPos = window.google.maps.geometry.spherical.computeOffset(
             rightPos,
@@ -186,11 +191,18 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 270) % 360
           );
         }
-        // Position arrow at the edge of the last panel (one unit length away in the positive direction)
+        // Now we're at the origin corner of the rightmost panel
+        // Move to the far edge of the panel (add full unitLength)
         rightPos = window.google.maps.geometry.spherical.computeOffset(
           rightPos,
           dims.unitLength,
           (absoluteRotation + 90) % 360
+        );
+        // Move to the center of the panel along the row direction
+        rightPos = window.google.maps.geometry.spherical.computeOffset(
+          rightPos,
+          dims.unitWidth / 2,
+          rowDistance >= 0 ? absoluteRotation : (absoluteRotation + 180) % 360
         );
 
         // Create left arrow (points perpendicular - up/negative direction)
@@ -253,15 +265,19 @@ const ArrayFineTuneTool = ({
         const topRowDistance = minRow * dims.unitWidth;
         const bottomRowDistance = maxRow * dims.unitWidth;
 
-        // Up arrow position
+        // Up arrow position - at the TOP edge of the topmost panel in this column
         let upPos = origin;
+        // Move to the column
         if (colDistance !== 0) {
           upPos = window.google.maps.geometry.spherical.computeOffset(
             upPos,
-            colDistance,
-            (absoluteRotation + 90) % 360
+            Math.abs(colDistance),
+            colDistance > 0
+              ? (absoluteRotation + 90) % 360
+              : (absoluteRotation + 270) % 360
           );
         }
+        // Move to the topmost row
         if (topRowDistance !== 0) {
           upPos = window.google.maps.geometry.spherical.computeOffset(
             upPos,
@@ -271,22 +287,29 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 180) % 360
           );
         }
-        // Position arrow at the edge of the last panel (one unit width away in the negative direction)
+        // Now we're at the origin corner of the topmost panel
+        // Move to the center of the panel along the column direction
         upPos = window.google.maps.geometry.spherical.computeOffset(
           upPos,
-          dims.unitWidth,
-          (absoluteRotation + 180) % 360
+          dims.unitLength / 2,
+          colDistance >= 0
+            ? (absoluteRotation + 90) % 360
+            : (absoluteRotation + 270) % 360
         );
 
-        // Down arrow position
+        // Down arrow position - at the BOTTOM edge of the bottommost panel in this column
         let downPos = origin;
+        // Move to the column
         if (colDistance !== 0) {
           downPos = window.google.maps.geometry.spherical.computeOffset(
             downPos,
-            colDistance,
-            (absoluteRotation + 90) % 360
+            Math.abs(colDistance),
+            colDistance > 0
+              ? (absoluteRotation + 90) % 360
+              : (absoluteRotation + 270) % 360
           );
         }
+        // Move to the bottommost row
         if (bottomRowDistance !== 0) {
           downPos = window.google.maps.geometry.spherical.computeOffset(
             downPos,
@@ -296,11 +319,22 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 180) % 360
           );
         }
-        // Position arrow at the edge of the last panel (one unit width away in the positive direction)
+        // Now we're at the origin corner of the bottommost panel
+        // Move to the far edge of the panel (add full unitWidth)
         downPos = window.google.maps.geometry.spherical.computeOffset(
           downPos,
           dims.unitWidth,
-          absoluteRotation
+          bottomRowDistance >= 0
+            ? absoluteRotation
+            : (absoluteRotation + 180) % 360
+        );
+        // Move to the center of the panel along the column direction
+        downPos = window.google.maps.geometry.spherical.computeOffset(
+          downPos,
+          dims.unitLength / 2,
+          colDistance >= 0
+            ? (absoluteRotation + 90) % 360
+            : (absoluteRotation + 270) % 360
         );
 
         // Create up arrow (points along edge - left/negative direction)
@@ -364,9 +398,11 @@ const ArrayFineTuneTool = ({
     let startDistance = 0;
     let initialPanelCount = 0;
     let lastPanelCount = 0;
+    let startArrowPos = null;
 
     arrow.addListener("dragstart", () => {
       setIsDraggingArrow(true);
+      startArrowPos = arrow.getPosition();
       const origin = new window.google.maps.LatLng(
         currentArray.origin.lat,
         currentArray.origin.lng
@@ -374,7 +410,7 @@ const ArrayFineTuneTool = ({
       startDistance =
         window.google.maps.geometry.spherical.computeDistanceBetween(
           origin,
-          arrow.getPosition()
+          startArrowPos
         );
 
       // Count current panels in this row
@@ -445,12 +481,24 @@ const ArrayFineTuneTool = ({
         return;
       }
 
-      // Calculate how many panels fit in the dragged distance
-      // The arrow should be at the edge of the last panel
-      const panelsFromDrag = Math.round(
-        Math.abs(projectedDistance) / dims.unitLength
+      // Calculate the change in distance from the start position
+      const startHeading = window.google.maps.geometry.spherical.computeHeading(
+        rowOrigin,
+        startArrowPos
       );
-      const targetPanelCount = Math.max(1, panelsFromDrag);
+      const startDistanceFromOrigin =
+        window.google.maps.geometry.spherical.computeDistanceBetween(
+          rowOrigin,
+          startArrowPos
+        );
+      const startProjectedDistance =
+        startDistanceFromOrigin *
+        Math.cos(((startHeading - targetHeading) * Math.PI) / 180);
+
+      // Calculate how many panels to add/remove based on the CHANGE in distance
+      const distanceChange = projectedDistance - startProjectedDistance;
+      const panelChange = Math.round(distanceChange / dims.unitLength);
+      const targetPanelCount = Math.max(1, initialPanelCount + panelChange);
 
       // Calculate the delta from last update
       const delta = targetPanelCount - lastPanelCount;
@@ -558,9 +606,11 @@ const ArrayFineTuneTool = ({
     let startDistance = 0;
     let initialPanelCount = 0;
     let lastPanelCount = 0;
+    let startArrowPos = null;
 
     arrow.addListener("dragstart", () => {
       setIsDraggingArrow(true);
+      startArrowPos = arrow.getPosition();
       const origin = new window.google.maps.LatLng(
         currentArray.origin.lat,
         currentArray.origin.lng
@@ -568,7 +618,7 @@ const ArrayFineTuneTool = ({
       startDistance =
         window.google.maps.geometry.spherical.computeDistanceBetween(
           origin,
-          arrow.getPosition()
+          startArrowPos
         );
 
       // Count current panels in this column
@@ -639,12 +689,24 @@ const ArrayFineTuneTool = ({
         return;
       }
 
-      // Calculate how many panels fit in the dragged distance
-      // The arrow should be at the edge of the last panel
-      const panelsFromDrag = Math.round(
-        Math.abs(projectedDistance) / dims.unitWidth
+      // Calculate the change in distance from the start position
+      const startHeading = window.google.maps.geometry.spherical.computeHeading(
+        colOrigin,
+        startArrowPos
       );
-      const targetPanelCount = Math.max(1, panelsFromDrag);
+      const startDistanceFromOrigin =
+        window.google.maps.geometry.spherical.computeDistanceBetween(
+          colOrigin,
+          startArrowPos
+        );
+      const startProjectedDistance =
+        startDistanceFromOrigin *
+        Math.cos(((startHeading - targetHeading) * Math.PI) / 180);
+
+      // Calculate how many panels to add/remove based on the CHANGE in distance
+      const distanceChange = projectedDistance - startProjectedDistance;
+      const panelChange = Math.round(distanceChange / dims.unitWidth);
+      const targetPanelCount = Math.max(1, initialPanelCount + panelChange);
 
       // Calculate the delta from last update
       const delta = targetPanelCount - lastPanelCount;
