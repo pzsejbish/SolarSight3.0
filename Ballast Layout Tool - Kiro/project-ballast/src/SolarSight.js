@@ -135,6 +135,8 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
   // Array creation sub-workflow state
   const [arrayCreationStep, setArrayCreationStep] = useState("idle"); // 'idle' | 'origin' | 'rotate' | 'rows' | 'columns' | 'fine-tune' | 'finalize'
   const [currentArrayDraft, setCurrentArrayDraft] = useState(null); // Array being created
+  const [fineTuneMode, setFineTuneMode] = useState("row"); // 'row' | 'column' | 'toggle'
+  const [fineTuneHoveredPanel, setFineTuneHoveredPanel] = useState(null); // { rowOffset, colOffset }
 
   // Obstruction workflow state
   const [workflowState, setWorkflowState] = useState("building"); // 'building' | 'building-edit' | 'obstructions' | 'obstructions-edit' | 'arrays'
@@ -2626,6 +2628,9 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
               rowCount={currentArrayDraft?.rows || 0}
               colCount={currentArrayDraft?.cols || 0}
               currentRotation={currentArrayDraft?.rotation || 0}
+              fineTuneMode={fineTuneMode}
+              onFineTuneModeChange={setFineTuneMode}
+              fineTuneHoveredPanel={fineTuneHoveredPanel}
             />
           )}
 
@@ -2948,6 +2953,9 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
                   ? polygons[selectedPolygonIndex].totalRotationAngle
                   : 0
               }
+              mode={fineTuneMode}
+              onModeChange={setFineTuneMode}
+              onHoveredPanelChange={setFineTuneHoveredPanel}
             />
           </>
         )}

@@ -12,12 +12,21 @@ const ArrayFineTuneTool = ({
   isActive,
   onArrayUpdated,
   buildingRotation,
+  mode = "row", // Accept mode as prop with default
+  onModeChange, // Callback to notify parent of mode changes
+  onHoveredPanelChange, // Callback to notify parent of hovered panel
 }) => {
   const [hoveredPanelCoords, setHoveredPanelCoords] = useState(null); // { rowOffset, colOffset }
-  const [mode, setMode] = useState("row"); // 'row' | 'column' | 'toggle'
   const [fineTuneArrows, setFineTuneArrows] = useState(null);
   const [isDraggingArrow, setIsDraggingArrow] = useState(false);
   const [updateCounter, setUpdateCounter] = useState(0);
+
+  // Notify parent when hovered panel changes
+  useEffect(() => {
+    if (onHoveredPanelChange) {
+      onHoveredPanelChange(hoveredPanelCoords);
+    }
+  }, [hoveredPanelCoords, onHoveredPanelChange]);
 
   // Store listeners in a ref so we can access them without causing re-renders
   const listenersRef = React.useRef([]);
@@ -888,7 +897,8 @@ const ArrayFineTuneTool = ({
     }
   }, [mode, fineTuneArrows]);
 
-  // Render mode toggle UI
+  // This component no longer renders UI - it only handles map interactions
+  // The UI is now in ArrayWorkflowPanel
   if (!isActive || !currentArray) {
     console.log("🚫 ArrayFineTuneTool not rendering", {
       isActive,
@@ -897,103 +907,12 @@ const ArrayFineTuneTool = ({
     return null;
   }
 
-  console.log("✅ ArrayFineTuneTool rendering", {
+  console.log("✅ ArrayFineTuneTool active (no UI)", {
     isActive,
     panelCount: currentArray.panelPolygons.length,
   });
 
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: "20px",
-        right: "20px",
-        backgroundColor: "white",
-        padding: "15px",
-        borderRadius: "8px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-        zIndex: 1000,
-        border: "3px solid #FF9800",
-      }}
-    >
-      <div
-        style={{
-          marginBottom: "10px",
-          fontWeight: "bold",
-          fontSize: "14px",
-          color: "#FF9800",
-        }}
-      >
-        🎯 Fine-Tune Mode ACTIVE
-      </div>
-      <div
-        style={{
-          marginBottom: "10px",
-          fontSize: "11px",
-          color: "#666",
-          fontStyle: "italic",
-        }}
-      >
-        {mode === "toggle"
-          ? "Click panels to add/remove them"
-          : "Hover over panels to adjust rows/columns"}
-      </div>
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <button
-          onClick={() => setMode("row")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: mode === "row" ? "#4CAF50" : "#E0E0E0",
-            color: mode === "row" ? "white" : "#333",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "600",
-          }}
-        >
-          Row
-        </button>
-        <button
-          onClick={() => setMode("column")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: mode === "column" ? "#2196F3" : "#E0E0E0",
-            color: mode === "column" ? "white" : "#333",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "600",
-          }}
-        >
-          Column
-        </button>
-        <button
-          onClick={() => setMode("toggle")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: mode === "toggle" ? "#FF9800" : "#E0E0E0",
-            color: mode === "toggle" ? "white" : "#333",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "600",
-          }}
-        >
-          Toggle
-        </button>
-      </div>
-      {hoveredPanelCoords && (
-        <div style={{ marginTop: "10px", fontSize: "11px", color: "#666" }}>
-          {mode === "toggle"
-            ? `Click to toggle: Row ${hoveredPanelCoords.rowOffset}, Col ${hoveredPanelCoords.colOffset}`
-            : `Hovering: Row ${hoveredPanelCoords.rowOffset}, Col ${hoveredPanelCoords.colOffset}`}
-        </div>
-      )}
-    </div>
-  );
+  return null;
 };
 
 export default ArrayFineTuneTool;

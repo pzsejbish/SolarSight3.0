@@ -15,6 +15,9 @@ const ArrayWorkflowPanel = ({
   arrayCount = 0,
   rowCount = 0,
   colCount = 0,
+  fineTuneMode = "row",
+  onFineTuneModeChange,
+  fineTuneHoveredPanel = null,
 }) => {
   const steps = [
     {
@@ -324,20 +327,135 @@ const ArrayWorkflowPanel = ({
       )}
 
       {currentStep === "fine-tune" && (
-        <div
-          style={{
-            marginTop: "15px",
-            padding: "10px",
-            backgroundColor: "#FFF3E0",
-            borderRadius: "6px",
-            fontSize: "12px",
-            color: "#E65100",
-            textAlign: "center",
-          }}
-        >
-          🎯 Hover over any panel to see arrows, then drag arrows to
-          extend/shrink that row or column
-        </div>
+        <>
+          <div
+            style={{
+              marginTop: "15px",
+              padding: "15px",
+              backgroundColor: "#FFF3E0",
+              borderRadius: "6px",
+              border: "2px solid #FF9800",
+            }}
+          >
+            <div
+              style={{
+                marginBottom: "10px",
+                fontWeight: "bold",
+                fontSize: "14px",
+                color: "#FF9800",
+                textAlign: "center",
+              }}
+            >
+              🎯 Fine-Tune Mode
+            </div>
+            <div
+              style={{
+                marginBottom: "12px",
+                fontSize: "11px",
+                color: "#666",
+                fontStyle: "italic",
+                textAlign: "center",
+              }}
+            >
+              {fineTuneMode === "toggle"
+                ? "Click panels to add/remove them"
+                : "Hover over panels to adjust rows/columns"}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+              }}
+            >
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("row")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "row" ? "#4CAF50" : "#E0E0E0",
+                  color: fineTuneMode === "row" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Row
+              </button>
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("column")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "column" ? "#2196F3" : "#E0E0E0",
+                  color: fineTuneMode === "column" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Column
+              </button>
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("toggle")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "toggle" ? "#FF9800" : "#E0E0E0",
+                  color: fineTuneMode === "toggle" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Toggle
+              </button>
+            </div>
+            {fineTuneHoveredPanel && (
+              <div
+                style={{
+                  marginTop: "10px",
+                  fontSize: "11px",
+                  color: "#666",
+                  textAlign: "center",
+                }}
+              >
+                {fineTuneMode === "toggle"
+                  ? `Click to toggle: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`
+                  : `Hovering: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`}
+              </div>
+            )}
+          </div>
+          <div
+            style={{
+              marginTop: "10px",
+              padding: "10px",
+              backgroundColor: "#E3F2FD",
+              borderRadius: "6px",
+              fontSize: "11px",
+              color: "#1565C0",
+              textAlign: "center",
+            }}
+          >
+            💡 Hover over any panel to see arrows, then drag arrows to
+            extend/shrink that row or column
+          </div>
+        </>
       )}
     </div>
   );
