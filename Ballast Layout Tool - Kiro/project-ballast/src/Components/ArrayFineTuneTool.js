@@ -153,6 +153,12 @@ const ArrayFineTuneTool = ({
             rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
           );
         }
+        // Move to the center of the row (perpendicular axis - width)
+        leftPos = window.google.maps.geometry.spherical.computeOffset(
+          leftPos,
+          dims.unitWidth / 2,
+          absoluteRotation
+        );
         // Move to the leftmost column
         if (leftColDistance !== 0) {
           leftPos = window.google.maps.geometry.spherical.computeOffset(
@@ -163,13 +169,6 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 270) % 360
           );
         }
-        // Now we're at the origin corner of the leftmost panel
-        // Move to the center of the panel along the row direction
-        leftPos = window.google.maps.geometry.spherical.computeOffset(
-          leftPos,
-          dims.unitWidth / 2,
-          rowDistance >= 0 ? absoluteRotation : (absoluteRotation + 180) % 360
-        );
 
         // Right arrow position - at the RIGHT edge of the rightmost panel in this row
         let rightPos = origin;
@@ -181,6 +180,12 @@ const ArrayFineTuneTool = ({
             rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
           );
         }
+        // Move to the center of the row (perpendicular axis - width)
+        rightPos = window.google.maps.geometry.spherical.computeOffset(
+          rightPos,
+          dims.unitWidth / 2,
+          absoluteRotation
+        );
         // Move to the rightmost column
         if (rightColDistance !== 0) {
           rightPos = window.google.maps.geometry.spherical.computeOffset(
@@ -191,18 +196,12 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 270) % 360
           );
         }
-        // Now we're at the origin corner of the rightmost panel
+        // Now we're at the center of the rightmost panel
         // Move to the far edge of the panel (add full unitLength)
         rightPos = window.google.maps.geometry.spherical.computeOffset(
           rightPos,
           dims.unitLength,
           (absoluteRotation + 90) % 360
-        );
-        // Move to the center of the panel along the row direction
-        rightPos = window.google.maps.geometry.spherical.computeOffset(
-          rightPos,
-          dims.unitWidth / 2,
-          rowDistance >= 0 ? absoluteRotation : (absoluteRotation + 180) % 360
         );
 
         // Create left arrow (points perpendicular - up/negative direction)
@@ -277,6 +276,12 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 270) % 360
           );
         }
+        // Move to the center of the column (perpendicular axis - length)
+        upPos = window.google.maps.geometry.spherical.computeOffset(
+          upPos,
+          dims.unitLength / 2,
+          (absoluteRotation + 90) % 360
+        );
         // Move to the topmost row
         if (topRowDistance !== 0) {
           upPos = window.google.maps.geometry.spherical.computeOffset(
@@ -287,15 +292,6 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 180) % 360
           );
         }
-        // Now we're at the origin corner of the topmost panel
-        // Move to the center of the panel along the column direction
-        upPos = window.google.maps.geometry.spherical.computeOffset(
-          upPos,
-          dims.unitLength / 2,
-          colDistance >= 0
-            ? (absoluteRotation + 90) % 360
-            : (absoluteRotation + 270) % 360
-        );
 
         // Down arrow position - at the BOTTOM edge of the bottommost panel in this column
         let downPos = origin;
@@ -309,6 +305,12 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 270) % 360
           );
         }
+        // Move to the center of the column (perpendicular axis - length)
+        downPos = window.google.maps.geometry.spherical.computeOffset(
+          downPos,
+          dims.unitLength / 2,
+          (absoluteRotation + 90) % 360
+        );
         // Move to the bottommost row
         if (bottomRowDistance !== 0) {
           downPos = window.google.maps.geometry.spherical.computeOffset(
@@ -319,22 +321,12 @@ const ArrayFineTuneTool = ({
               : (absoluteRotation + 180) % 360
           );
         }
-        // Now we're at the origin corner of the bottommost panel
+        // Now we're at the center of the bottommost panel
         // Move to the far edge of the panel (add full unitWidth)
         downPos = window.google.maps.geometry.spherical.computeOffset(
           downPos,
           dims.unitWidth,
-          bottomRowDistance >= 0
-            ? absoluteRotation
-            : (absoluteRotation + 180) % 360
-        );
-        // Move to the center of the panel along the column direction
-        downPos = window.google.maps.geometry.spherical.computeOffset(
-          downPos,
-          dims.unitLength / 2,
-          colDistance >= 0
-            ? (absoluteRotation + 90) % 360
-            : (absoluteRotation + 270) % 360
+          absoluteRotation
         );
 
         // Create up arrow (points along edge - left/negative direction)
