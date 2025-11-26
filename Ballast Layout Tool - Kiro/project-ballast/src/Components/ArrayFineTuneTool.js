@@ -20,6 +20,7 @@ const ArrayFineTuneTool = ({
   const [fineTuneArrows, setFineTuneArrows] = useState(null);
   const [isDraggingArrow, setIsDraggingArrow] = useState(false);
   const [updateCounter, setUpdateCounter] = useState(0);
+  const [addPanelMarkers, setAddPanelMarkers] = useState(null); // Plus signs for adding panels
 
   // Notify parent when hovered panel changes
   useEffect(() => {
@@ -91,6 +92,21 @@ const ArrayFineTuneTool = ({
           strokeWeight: 3,
           fillOpacity: 0.7,
         });
+      } else if (mode === "add") {
+        // In add mode, highlight individual panel
+        if (r === rowOffset && c === colOffset) {
+          panel.setOptions({
+            strokeColor: "#9C27B0",
+            strokeWeight: 3,
+            fillOpacity: 0.8,
+          });
+        } else {
+          panel.setOptions({
+            strokeColor: "#FFFFFF",
+            strokeWeight: 2,
+            fillOpacity: 0.6,
+          });
+        }
       } else {
         // Dim other panels
         panel.setOptions({
@@ -101,11 +117,255 @@ const ArrayFineTuneTool = ({
       }
     });
 
-    // Create arrows at the ends of the hovered row/column (not in toggle mode)
-    if (mode !== "toggle") {
+    // Create arrows at the ends of the hovered row/column (not in toggle or add mode)
+    if (mode !== "toggle" && mode !== "add") {
       createFineTuneArrows(rowOffset, colOffset);
     }
+
+    // Create plus signs for adding panels (only in add mode)
+    if (mode === "add") {
+      createAddPanelMarkers(rowOffset, colOffset);
+    }
   }, [hoveredPanelCoords, mode, currentArray]);
+
+  // Create plus signs for adding panels
+  const createAddPanelMarkers = useCallback(
+    (rowOffset, colOffset) => {
+      // Clean up existing markers
+      if (addPanelMarkers) {
+        addPanelMarkers.forEach((marker) => marker.setMap(null));
+      }
+
+      if (!currentArray || !mapRef.current) return;
+
+      const dims = arrayManager.getPanelDimensions();
+      const absoluteRotation = buildingRotation + (currentArray.rotation || 0);
+      const origin = new window.google.maps.LatLng(
+        currentArray.origin.lat,
+        currentArray.origin.lng
+      );
+
+      // Check which adjacent panels exist
+      const hasTop = currentArray.panelCoords.has(
+        `${rowOffset - 1},${colOffset}`
+      );
+      const hasBottom = currentArray.panelCoords.has(
+        `${rowOffset + 1},${colOffset}`
+      );
+      const hasLeft = currentArray.panelCoords.has(
+        `${rowOffset},${colOffset - 1}`
+      );
+      const hasRight = currentArray.panelCoords.has(
+        `${rowOffset},${colOffset + 1}`
+      );
+
+      const markers = [];
+
+      // Calculate the center position of the current panel
+      const rowDistance = rowOffset * dims.unitWidth;
+      const colDistance = colOffset * dims.unitLength;
+
+      let panelCenter = origin;
+
+      // Move to row position (along building edge)
+      if (rowDistance !== 0) {
+        panelCenter = window.google.maps.geometry.spherical.computeOffset(
+          panelCenter,
+          Math.abs(rowDistance),
+          rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
+        );
+      }
+
+      // Move to center of panel along row axis
+      panelCenter = window.google.maps.geometry.spherical.computeOffset(
+        panelCenter,
+        dims.unitWidth / 2,
+        absoluteRotation
+      );
+
+      // Move to column position (perpendicular to building edge)
+      if (colDistance !== 0) {
+        panelCenter = window.google.maps.geometry.spherical.computeOffset(
+          panelCenter,
+          Math.abs(colDistance),
+          colDistance > 0
+            ? (absoluteRotation + 90) % 360
+            : (absoluteRotation + 270) % 360
+        );
+      }
+
+      // Move to center of panel along column axis
+      panelCenter = window.google.maps.geometry.spherical.computeOffset(
+        panelCenter,
+        dims.unitLength / 2,
+        (absoluteRotation + 90) % 360
+      );
+
+      // Create plus sign markers for each available direction
+      // Top (negative row direction)
+      if (!hasTop) {
+        const topPos = window.google.maps.geometry.spherical.computeOffset(
+          panelCenter,
+          dims.unitWidth / 2,
+          (absoluteRotation + 180) % 360
+        );
+
+        const topMarker = new window.google.maps.Marker({
+          position: topPos,
+          map: mapRef.current,
+          icon: {
+            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
+            strokeColor: "#9C27B0",
+            strokeWeight: 3,
+            scale: 1.5,
+            anchor: new window.google.maps.Point(0, 0),
+          },
+          clickable: true,
+          zIndex: 10003,
+        });
+
+        topMarker.addListener("click", () => {
+          arrayManager.addPanel(
+            currentArray,
+            rowOffset - 1,
+            colOffset,
+            mapRef.current
+          );
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+          setUpdateCounter((c) => c + 1);
+        });
+
+        markers.push(topMarker);
+      }
+
+      // Bottom (positive row direction)
+      if (!hasBottom) {
+        const bottomPos = window.google.maps.geometry.spherical.computeOffset(
+          panelCenter,
+          dims.unitWidth / 2,
+          absoluteRotation
+        );
+
+        const bottomMarker = new window.google.maps.Marker({
+          position: bottomPos,
+          map: mapRef.current,
+          icon: {
+            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
+            strokeColor: "#9C27B0",
+            strokeWeight: 3,
+            scale: 1.5,
+            anchor: new window.google.maps.Point(0, 0),
+          },
+          clickable: true,
+          zIndex: 10003,
+        });
+
+        bottomMarker.addListener("click", () => {
+          arrayManager.addPanel(
+            currentArray,
+            rowOffset + 1,
+            colOffset,
+            mapRef.current
+          );
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+          setUpdateCounter((c) => c + 1);
+        });
+
+        markers.push(bottomMarker);
+      }
+
+      // Left (negative column direction)
+      if (!hasLeft) {
+        const leftPos = window.google.maps.geometry.spherical.computeOffset(
+          panelCenter,
+          dims.unitLength / 2,
+          (absoluteRotation + 270) % 360
+        );
+
+        const leftMarker = new window.google.maps.Marker({
+          position: leftPos,
+          map: mapRef.current,
+          icon: {
+            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
+            strokeColor: "#9C27B0",
+            strokeWeight: 3,
+            scale: 1.5,
+            anchor: new window.google.maps.Point(0, 0),
+          },
+          clickable: true,
+          zIndex: 10003,
+        });
+
+        leftMarker.addListener("click", () => {
+          arrayManager.addPanel(
+            currentArray,
+            rowOffset,
+            colOffset - 1,
+            mapRef.current
+          );
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+          setUpdateCounter((c) => c + 1);
+        });
+
+        markers.push(leftMarker);
+      }
+
+      // Right (positive column direction)
+      if (!hasRight) {
+        const rightPos = window.google.maps.geometry.spherical.computeOffset(
+          panelCenter,
+          dims.unitLength / 2,
+          (absoluteRotation + 90) % 360
+        );
+
+        const rightMarker = new window.google.maps.Marker({
+          position: rightPos,
+          map: mapRef.current,
+          icon: {
+            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
+            strokeColor: "#9C27B0",
+            strokeWeight: 3,
+            scale: 1.5,
+            anchor: new window.google.maps.Point(0, 0),
+          },
+          clickable: true,
+          zIndex: 10003,
+        });
+
+        rightMarker.addListener("click", () => {
+          arrayManager.addPanel(
+            currentArray,
+            rowOffset,
+            colOffset + 1,
+            mapRef.current
+          );
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+          setUpdateCounter((c) => c + 1);
+        });
+
+        markers.push(rightMarker);
+      }
+
+      setAddPanelMarkers(markers);
+    },
+    [
+      mode,
+      currentArray,
+      arrayManager,
+      buildingRotation,
+      mapRef,
+      addPanelMarkers,
+      onArrayUpdated,
+    ]
+  );
 
   // Create arrows for fine-tuning
   const createFineTuneArrows = useCallback(
@@ -943,13 +1203,30 @@ const ArrayFineTuneTool = ({
     }
   }, [isActive, fineTuneArrows]);
 
-  // Hide arrows when in toggle mode
+  // Hide arrows when in toggle or add mode
   useEffect(() => {
-    if (mode === "toggle" && fineTuneArrows) {
+    if ((mode === "toggle" || mode === "add") && fineTuneArrows) {
       fineTuneArrows.forEach((arrow) => arrow.setMap(null));
       setFineTuneArrows(null);
     }
   }, [mode, fineTuneArrows]);
+
+  // Cleanup add panel markers when mode changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (addPanelMarkers) {
+        addPanelMarkers.forEach((marker) => marker.setMap(null));
+      }
+    };
+  }, [addPanelMarkers]);
+
+  // Hide add panel markers when not in add mode
+  useEffect(() => {
+    if (mode !== "add" && addPanelMarkers) {
+      addPanelMarkers.forEach((marker) => marker.setMap(null));
+      setAddPanelMarkers(null);
+    }
+  }, [mode, addPanelMarkers]);
 
   // This component no longer renders UI - it only handles map interactions
   // The UI is now in ArrayWorkflowPanel

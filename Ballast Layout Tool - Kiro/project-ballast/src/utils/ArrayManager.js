@@ -729,6 +729,25 @@ export class ArrayManager {
   }
 
   /**
+   * Add a specific panel at the given coordinates
+   */
+  addPanel(array, rowOffset, colOffset, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    const coordStr = `${rowOffset},${colOffset}`;
+
+    // Only add if it doesn't already exist
+    if (!array.panelCoords.has(coordStr)) {
+      array.panelCoords.add(coordStr);
+      console.log(`🔧 Panel added: [${rowOffset},${colOffset}]`);
+    }
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
    * Move array to new origin
    */
   moveArray(array, newOriginLatLng, map) {

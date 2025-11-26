@@ -359,6 +359,8 @@ const ArrayWorkflowPanel = ({
             >
               {fineTuneMode === "toggle"
                 ? "Click panels to add/remove them"
+                : fineTuneMode === "add"
+                ? "Hover panels and click + signs to add adjacent panels"
                 : "Hover over panels to adjust rows/columns"}
             </div>
             <div
@@ -425,6 +427,25 @@ const ArrayWorkflowPanel = ({
               >
                 Toggle
               </button>
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("add")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "add" ? "#9C27B0" : "#E0E0E0",
+                  color: fineTuneMode === "add" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Add Panel
+              </button>
             </div>
             {fineTuneHoveredPanel && (
               <div
@@ -437,6 +458,8 @@ const ArrayWorkflowPanel = ({
               >
                 {fineTuneMode === "toggle"
                   ? `Click to toggle: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`
+                  : fineTuneMode === "add"
+                  ? `Click + to add panel: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`
                   : `Hovering: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`}
               </div>
             )}
