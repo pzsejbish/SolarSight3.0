@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import SolarPanelScene from "./SolarPanelScene";
 
 const ArrayWorkflowPanel = ({
   currentStep,
@@ -15,6 +16,7 @@ const ArrayWorkflowPanel = ({
   arrayCount = 0,
   rowCount = 0,
   colCount = 0,
+  currentRotation = 0,
   fineTuneMode = "row",
   onFineTuneModeChange,
   fineTuneHoveredPanel = null,
@@ -254,6 +256,25 @@ const ArrayWorkflowPanel = ({
             textAlign: "center",
           }}
         >
+          {/* 3D Panel Preview */}
+          <div
+            style={{
+              width: "100%",
+              height: "200px",
+              marginBottom: "15px",
+              borderRadius: "6px",
+              overflow: "hidden",
+              backgroundColor: "#f5f5f5",
+              border: "2px solid #FF9800",
+            }}
+          >
+            <SolarPanelScene
+              totalRotationAngle={currentRotation}
+              tiltAngleDegrees={30}
+              isClockwise={true}
+            />
+          </div>
+
           <div
             style={{ fontSize: "12px", color: "#E65100", marginBottom: "8px" }}
           >
@@ -267,7 +288,7 @@ const ArrayWorkflowPanel = ({
               fontStyle: "italic",
             }}
           >
-            👁️ Check the 3D preview in the sidebar to see panel tilt direction
+            👁️ View the 3D preview above to see panel tilt direction
           </div>
           <button
             onClick={onRotate}
