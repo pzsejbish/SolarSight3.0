@@ -78,6 +78,20 @@ const ArrayFineTuneTool = ({
             fillOpacity: 0.6,
           });
         }
+      } else if (mode === "deleteRow" && r === rowOffset) {
+        // Highlight this row in red for deletion
+        panel.setOptions({
+          strokeColor: "#F44336",
+          strokeWeight: 3,
+          fillOpacity: 0.7,
+        });
+      } else if (mode === "deleteColumn" && c === colOffset) {
+        // Highlight this column in red for deletion
+        panel.setOptions({
+          strokeColor: "#F44336",
+          strokeWeight: 3,
+          fillOpacity: 0.7,
+        });
       } else if (mode === "row" && r === rowOffset) {
         // Highlight this row
         panel.setOptions({
@@ -117,8 +131,13 @@ const ArrayFineTuneTool = ({
       }
     });
 
-    // Create arrows at the ends of the hovered row/column (not in toggle or add mode)
-    if (mode !== "toggle" && mode !== "add") {
+    // Create arrows at the ends of the hovered row/column (not in toggle, add, or delete modes)
+    if (
+      mode !== "toggle" &&
+      mode !== "add" &&
+      mode !== "deleteRow" &&
+      mode !== "deleteColumn"
+    ) {
       createFineTuneArrows(rowOffset, colOffset);
     }
 
@@ -1188,24 +1207,54 @@ const ArrayFineTuneTool = ({
       });
 
       const clickListener = panel.addListener("click", () => {
-        // Use ref to check mode
-        if (modeRef.current !== "toggle") return;
-        console.log("✅ Panel click!", panel.arrayIndex);
-
+        const currentMode = modeRef.current;
         const { rowOffset, colOffset } = panel.arrayIndex;
-        arrayManager.togglePanel(
-          currentArray,
-          rowOffset,
-          colOffset,
-          mapRef.current
-        );
 
-        if (onArrayUpdated) {
-          onArrayUpdated(currentArray);
+        // Handle toggle mode
+        if (currentMode === "toggle") {
+          console.log("✅ Panel click (toggle)!", panel.arrayIndex);
+          arrayManager.togglePanel(
+            currentArray,
+            rowOffset,
+            colOffset,
+            mapRef.current
+          );
+
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+
+          // Force listener re-setup after toggle
+          setUpdateCounter((c) => c + 1);
         }
 
-        // Force listener re-setup after toggle
-        setUpdateCounter((c) => c + 1);
+        // Handle delete row mode
+        else if (currentMode === "deleteRow") {
+          console.log("✅ Panel click (delete row)!", panel.arrayIndex);
+          arrayManager.deleteRow(currentArray, rowOffset, mapRef.current);
+
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+
+          // Clear hover state and force listener re-setup
+          setHoveredPanelCoords(null);
+          setUpdateCounter((c) => c + 1);
+        }
+
+        // Handle delete column mode
+        else if (currentMode === "deleteColumn") {
+          console.log("✅ Panel click (delete column)!", panel.arrayIndex);
+          arrayManager.deleteColumn(currentArray, colOffset, mapRef.current);
+
+          if (onArrayUpdated) {
+            onArrayUpdated(currentArray);
+          }
+
+          // Clear hover state and force listener re-setup
+          setHoveredPanelCoords(null);
+          setUpdateCounter((c) => c + 1);
+        }
       });
 
       listenersRef.current.push(
@@ -1259,9 +1308,15 @@ const ArrayFineTuneTool = ({
     }
   }, [isActive, fineTuneArrows]);
 
-  // Hide arrows when in toggle or add mode
+  // Hide arrows when in toggle, add, or delete modes
   useEffect(() => {
-    if ((mode === "toggle" || mode === "add") && fineTuneArrows) {
+    if (
+      (mode === "toggle" ||
+        mode === "add" ||
+        mode === "deleteRow" ||
+        mode === "deleteColumn") &&
+      fineTuneArrows
+    ) {
       fineTuneArrows.forEach((arrow) => arrow.setMap(null));
       setFineTuneArrows(null);
     }

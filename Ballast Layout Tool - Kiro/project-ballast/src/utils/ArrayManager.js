@@ -748,6 +748,64 @@ export class ArrayManager {
   }
 
   /**
+   * Delete an entire row
+   */
+  deleteRow(array, rowOffset, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this row and remove them
+    const panelsToDelete = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (r === rowOffset) {
+        panelsToDelete.push(coordStr);
+      }
+    }
+
+    // Delete all panels in this row
+    panelsToDelete.forEach((coordStr) => {
+      array.panelCoords.delete(coordStr);
+    });
+
+    console.log(
+      `🔧 Row deleted: ${rowOffset} (${panelsToDelete.length} panels removed)`
+    );
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
+   * Delete an entire column
+   */
+  deleteColumn(array, colOffset, map) {
+    if (!array.panelCoords) {
+      this.initializePanelCoordsFromRect(array);
+    }
+
+    // Find all panels in this column and remove them
+    const panelsToDelete = [];
+    for (const coordStr of array.panelCoords) {
+      const [r, c] = coordStr.split(",").map(Number);
+      if (c === colOffset) {
+        panelsToDelete.push(coordStr);
+      }
+    }
+
+    // Delete all panels in this column
+    panelsToDelete.forEach((coordStr) => {
+      array.panelCoords.delete(coordStr);
+    });
+
+    console.log(
+      `🔧 Column deleted: ${colOffset} (${panelsToDelete.length} panels removed)`
+    );
+
+    return this.generateArrayPanels(array, map);
+  }
+
+  /**
    * Move array to new origin
    */
   moveArray(array, newOriginLatLng, map) {

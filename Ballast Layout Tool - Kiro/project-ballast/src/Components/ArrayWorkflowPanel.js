@@ -361,6 +361,10 @@ const ArrayWorkflowPanel = ({
                 ? "Click panels to add/remove them"
                 : fineTuneMode === "add"
                 ? "Hover panels and click + signs to add adjacent panels"
+                : fineTuneMode === "deleteRow"
+                ? "Hover over a row and click to delete it"
+                : fineTuneMode === "deleteColumn"
+                ? "Hover over a column and click to delete it"
                 : "Hover over panels to adjust rows/columns"}
             </div>
             <div
@@ -446,6 +450,44 @@ const ArrayWorkflowPanel = ({
               >
                 Add Panel
               </button>
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("deleteRow")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "deleteRow" ? "#F44336" : "#E0E0E0",
+                  color: fineTuneMode === "deleteRow" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Delete Row
+              </button>
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("deleteColumn")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "deleteColumn" ? "#F44336" : "#E0E0E0",
+                  color: fineTuneMode === "deleteColumn" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Delete Column
+              </button>
             </div>
             {fineTuneHoveredPanel && (
               <div
@@ -460,6 +502,10 @@ const ArrayWorkflowPanel = ({
                   ? `Click to toggle: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`
                   : fineTuneMode === "add"
                   ? `Click + to add panel: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`
+                  : fineTuneMode === "deleteRow"
+                  ? `Click to delete Row ${fineTuneHoveredPanel.rowOffset}`
+                  : fineTuneMode === "deleteColumn"
+                  ? `Click to delete Column ${fineTuneHoveredPanel.colOffset}`
                   : `Hovering: Row ${fineTuneHoveredPanel.rowOffset}, Col ${fineTuneHoveredPanel.colOffset}`}
               </div>
             )}
