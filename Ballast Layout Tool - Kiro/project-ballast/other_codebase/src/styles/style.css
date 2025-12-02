@@ -1,0 +1,46 @@
+.no-stepper::-webkit-outer-spin-button,
+.no-stepper::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-stepper {
+  -appearance: textfield;
+}
+
+.custom-stepper-btn {
+  width: 16px;  /* Adjusted width */
+  height: 16px;  /* Adjusted height */
+  background-color: #e2e8f0;
+  border: none;
+  color: #1a202c;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;  /* Adjusted font size */
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.custom-stepper-btn:disabled {
+  background-color: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.input-container:hover .custom-stepper-btn,
+.input-container:focus-within .custom-stepper-btn {
+  opacity: 1;
+}
+
+/* Ensure drawing controls are visible */
+.gm-style .gmnoprint, .gm-style .gm-style-mtc {
+  display: block !important;
+}
+
+.gm-style button {
+  display: block !important;
+}
+

@@ -19,6 +19,7 @@ import ErrorBoundary from "./Components/ErrorBoundary";
 import SolarSightMap from "./Components/SolarSightMap";
 import SolarPanelScene from "./Components/SolarPanelScene";
 import PanelObstructionManager from "./Components/PanelObstructionManager";
+import RoofImportTool from "./Components/RoofImportTool";
 import { generateObstructionSetbacks } from "./utils/ObstructionSetback";
 
 function isPolygonClockwise(pathArray) {
@@ -2166,6 +2167,106 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
   };
 
   /**
+   * Handle roof import from Google Solar API
+   */
+  const handleRoofImported = useCallback(
+    (roofData) => {
+      console.log("🏠 Roof data imported:", roofData);
+
+      if (roofData.mode === "single") {
+        // Import as single building outline
+        const { polygon: buildingOutline } = roofData;
+
+        // Create Google Maps polygon from the imported vertices
+        const path = buildingOutline.vertices.map(
+          (v) => new window.google.maps.LatLng(v.lat, v.lng)
+        );
+
+        const polygon = new window.google.maps.Polygon({
+          paths: path,
+          fillColor: "#2196F3",
+          fillOpacity: 0.2,
+          strokeWeight: 3,
+          strokeColor: "#2196F3",
+          clickable: true,
+          editable: true,
+          zIndex: 1,
+          draggable: false,
+          map: mapRef.current,
+        });
+
+        // Store as pending building polygon
+        const pathArray = buildingOutline.vertices;
+        const boundingBoxDimensions = calculateBoundingBoxDimensions(pathArray);
+
+        setPendingBuildingPolygon({
+          polygon: polygon,
+          pathArray: pathArray,
+          boundingBoxDimensions: boundingBoxDimensions,
+        });
+
+        // Transition to edit mode
+        setWorkflowState("building-edit");
+
+        // Center map on the building
+        if (mapRef.current && buildingOutline.metadata?.center) {
+          mapRef.current.setCenter({
+            lat: buildingOutline.metadata.center.latitude,
+            lng: buildingOutline.metadata.center.longitude,
+          });
+          mapRef.current.setZoom(20);
+        }
+      } else if (roofData.mode === "segments") {
+        // Import as multiple roof segments
+        // For now, we'll just use the first segment or merge them
+        // You can enhance this to handle multiple segments differently
+        const firstSegment = roofData.segments[0];
+
+        if (firstSegment) {
+          const path = firstSegment.vertices.map(
+            (v) => new window.google.maps.LatLng(v.lat, v.lng)
+          );
+
+          const polygon = new window.google.maps.Polygon({
+            paths: path,
+            fillColor: "#2196F3",
+            fillOpacity: 0.2,
+            strokeWeight: 3,
+            strokeColor: "#2196F3",
+            clickable: true,
+            editable: true,
+            zIndex: 1,
+            draggable: false,
+            map: mapRef.current,
+          });
+
+          const pathArray = firstSegment.vertices;
+          const boundingBoxDimensions =
+            calculateBoundingBoxDimensions(pathArray);
+
+          setPendingBuildingPolygon({
+            polygon: polygon,
+            pathArray: pathArray,
+            boundingBoxDimensions: boundingBoxDimensions,
+          });
+
+          setWorkflowState("building-edit");
+
+          // Center map on the building
+          if (mapRef.current && roofData.buildingInsights?.center) {
+            mapRef.current.setCenter({
+              lat: roofData.buildingInsights.center.latitude,
+              lng: roofData.buildingInsights.center.longitude,
+            });
+            mapRef.current.setZoom(20);
+          }
+        }
+      }
+    },
+    [mapRef]
+  );
+
+  /**
    * Handle workflow navigation - Next button
    */
   const handleWorkflowNext = useCallback(() => {
@@ -2586,6 +2687,15 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
               : "Click individual panels to select"}
           </div>
         </div>
+
+        {/* Roof Import Tool - Show in building step */}
+        {useArrayMode && workflowState === "building" && (
+          <RoofImportTool
+            mapRef={mapRef}
+            onRoofImported={handleRoofImported}
+            googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+          />
+        )}
 
         {/* Workflow Control Panel (Building/Obstructions) - IN SIDEBAR */}
         {useArrayMode &&
