@@ -391,7 +391,7 @@ const ArrayWorkflowPanel = ({
                   transition: "background-color 0.2s",
                 }}
               >
-                Row
+                Edit Row
               </button>
               <button
                 onClick={() =>
@@ -410,17 +410,17 @@ const ArrayWorkflowPanel = ({
                   transition: "background-color 0.2s",
                 }}
               >
-                Column
+                Edit Column
               </button>
               <button
                 onClick={() =>
-                  onFineTuneModeChange && onFineTuneModeChange("toggle")
+                  onFineTuneModeChange && onFineTuneModeChange("deleteRow")
                 }
                 style={{
                   padding: "8px 16px",
                   backgroundColor:
-                    fineTuneMode === "toggle" ? "#FF9800" : "#E0E0E0",
-                  color: fineTuneMode === "toggle" ? "white" : "#333",
+                    fineTuneMode === "deleteRow" ? "#D32F2F" : "#E0E0E0",
+                  color: fineTuneMode === "deleteRow" ? "white" : "#333",
                   border: "none",
                   borderRadius: "4px",
                   cursor: "pointer",
@@ -429,7 +429,26 @@ const ArrayWorkflowPanel = ({
                   transition: "background-color 0.2s",
                 }}
               >
-                Toggle
+                Delete Row
+              </button>
+              <button
+                onClick={() =>
+                  onFineTuneModeChange && onFineTuneModeChange("deleteColumn")
+                }
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    fineTuneMode === "deleteColumn" ? "#D32F2F" : "#E0E0E0",
+                  color: fineTuneMode === "deleteColumn" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  transition: "background-color 0.2s",
+                }}
+              >
+                Delete Column
               </button>
               <button
                 onClick={() =>
@@ -452,13 +471,13 @@ const ArrayWorkflowPanel = ({
               </button>
               <button
                 onClick={() =>
-                  onFineTuneModeChange && onFineTuneModeChange("deleteRow")
+                  onFineTuneModeChange && onFineTuneModeChange("toggle")
                 }
                 style={{
                   padding: "8px 16px",
                   backgroundColor:
-                    fineTuneMode === "deleteRow" ? "#F44336" : "#E0E0E0",
-                  color: fineTuneMode === "deleteRow" ? "white" : "#333",
+                    fineTuneMode === "toggle" ? "#D32F2F" : "#E0E0E0",
+                  color: fineTuneMode === "toggle" ? "white" : "#333",
                   border: "none",
                   borderRadius: "4px",
                   cursor: "pointer",
@@ -467,26 +486,7 @@ const ArrayWorkflowPanel = ({
                   transition: "background-color 0.2s",
                 }}
               >
-                Delete Row
-              </button>
-              <button
-                onClick={() =>
-                  onFineTuneModeChange && onFineTuneModeChange("deleteColumn")
-                }
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor:
-                    fineTuneMode === "deleteColumn" ? "#F44336" : "#E0E0E0",
-                  color: fineTuneMode === "deleteColumn" ? "white" : "#333",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  transition: "background-color 0.2s",
-                }}
-              >
-                Delete Column
+                Delete Panel
               </button>
             </div>
             {fineTuneHoveredPanel && (

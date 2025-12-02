@@ -64,12 +64,12 @@ const ArrayFineTuneTool = ({
       const { rowOffset: r, colOffset: c } = panel.arrayIndex;
 
       if (mode === "toggle") {
-        // In toggle mode, highlight individual panel
+        // In toggle mode, highlight individual panel in red
         if (r === rowOffset && c === colOffset) {
           panel.setOptions({
-            strokeColor: "#FF9800",
+            strokeColor: "#D32F2F",
             strokeWeight: 3,
-            fillOpacity: 0.8,
+            fillOpacity: 0.7,
           });
         } else {
           panel.setOptions({
@@ -81,14 +81,14 @@ const ArrayFineTuneTool = ({
       } else if (mode === "deleteRow" && r === rowOffset) {
         // Highlight this row in red for deletion
         panel.setOptions({
-          strokeColor: "#F44336",
+          strokeColor: "#D32F2F",
           strokeWeight: 3,
           fillOpacity: 0.7,
         });
       } else if (mode === "deleteColumn" && c === colOffset) {
         // Highlight this column in red for deletion
         panel.setOptions({
-          strokeColor: "#F44336",
+          strokeColor: "#D32F2F",
           strokeWeight: 3,
           fillOpacity: 0.7,
         });
