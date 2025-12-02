@@ -2171,95 +2171,164 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
    */
   const handleRoofImported = useCallback(
     (roofData) => {
-      console.log("🏠 Roof data imported:", roofData);
+      console.log("🌞 Roof imported from Solar API:", roofData);
+      console.log("🗺️ mapRef.current available?", !!mapRef.current);
 
-      if (roofData.mode === "single") {
-        // Import as single building outline
-        const { polygon: buildingOutline } = roofData;
+      const { mode, polygon, segments, buildingInsights } = roofData;
 
-        // Create Google Maps polygon from the imported vertices
-        const path = buildingOutline.vertices.map(
+      console.log(`📦 Import mode: ${mode}`);
+
+      if (mode === "single") {
+        console.log("🏠 Creating single building polygon");
+        // Import as single building polygon
+        const vertices = polygon.vertices.map(
           (v) => new window.google.maps.LatLng(v.lat, v.lng)
         );
 
-        const polygon = new window.google.maps.Polygon({
-          paths: path,
-          fillColor: "#2196F3",
+        const newPolygon = new window.google.maps.Polygon({
+          paths: vertices,
+          fillColor: "#0000FF",
           fillOpacity: 0.2,
+          strokeColor: "#0000FF",
           strokeWeight: 3,
-          strokeColor: "#2196F3",
           clickable: true,
           editable: true,
           zIndex: 1,
-          draggable: false,
           map: mapRef.current,
         });
 
-        // Store as pending building polygon
-        const pathArray = buildingOutline.vertices;
-        const boundingBoxDimensions = calculateBoundingBoxDimensions(pathArray);
+        // Add GeoTIFF overlay if available (fully opaque to replace Google Maps imagery)
+        if (polygon.overlay) {
+          console.log("🖼️ Adding GeoTIFF overlay (full opacity)");
+          const overlay = new window.google.maps.GroundOverlay(
+            polygon.overlay.imageUrl,
+            polygon.overlay.bounds,
+            {
+              opacity: 1.0, // Fully opaque - hide Google Maps imagery
+              clickable: false,
+            }
+          );
+          overlay.setMap(mapRef.current);
 
+          // Store overlay reference to remove later if needed
+          newPolygon.geoTiffOverlay = overlay;
+        }
+
+        // Set as pending building polygon
         setPendingBuildingPolygon({
-          polygon: polygon,
-          pathArray: pathArray,
-          boundingBoxDimensions: boundingBoxDimensions,
+          polygon: newPolygon,
+          metadata: polygon.metadata,
         });
 
-        // Transition to edit mode
+        // Move to building-edit state
         setWorkflowState("building-edit");
 
         // Center map on the building
-        if (mapRef.current && buildingOutline.metadata?.center) {
+        if (mapRef.current && polygon.metadata?.center) {
           mapRef.current.setCenter({
-            lat: buildingOutline.metadata.center.latitude,
-            lng: buildingOutline.metadata.center.longitude,
+            lat: polygon.metadata.center.latitude,
+            lng: polygon.metadata.center.longitude,
           });
           mapRef.current.setZoom(20);
         }
-      } else if (roofData.mode === "segments") {
-        // Import as multiple roof segments
-        // For now, we'll just use the first segment or merge them
-        // You can enhance this to handle multiple segments differently
-        const firstSegment = roofData.segments[0];
+      } else if (mode === "segments") {
+        console.log(`🏠 Creating ${segments.length} roof segment polygons`);
 
-        if (firstSegment) {
-          const path = firstSegment.vertices.map(
+        // Import as multiple roof segments
+        // Color code by elevation
+        const elevations = segments.map((s) =>
+          parseFloat(s.metadata.heightMeters)
+        );
+        const minElev = Math.min(...elevations);
+        const maxElev = Math.max(...elevations);
+
+        console.log(`📊 Elevation range: ${minElev}m to ${maxElev}m`);
+
+        segments.forEach((segment, index) => {
+          console.log(
+            `🔷 Creating segment ${index + 1}:`,
+            segment.vertices.length,
+            "vertices"
+          );
+          const vertices = segment.vertices.map(
             (v) => new window.google.maps.LatLng(v.lat, v.lng)
           );
 
-          const polygon = new window.google.maps.Polygon({
-            paths: path,
-            fillColor: "#2196F3",
-            fillOpacity: 0.2,
-            strokeWeight: 3,
-            strokeColor: "#2196F3",
+          // Color based on elevation (blue = low, red = high)
+          const elevNormalized =
+            maxElev > minElev
+              ? (parseFloat(segment.metadata.heightMeters) - minElev) /
+                (maxElev - minElev)
+              : 0.5;
+          const hue = 240 - elevNormalized * 120; // 240 (blue) to 120 (green) to 0 (red)
+          const color = `hsl(${hue}, 70%, 50%)`;
+
+          const segmentPolygon = new window.google.maps.Polygon({
+            paths: vertices,
+            fillColor: color,
+            fillOpacity: 0.3,
+            strokeColor: color,
+            strokeWeight: 2,
             clickable: true,
             editable: true,
             zIndex: 1,
-            draggable: false,
             map: mapRef.current,
           });
 
-          const pathArray = firstSegment.vertices;
-          const boundingBoxDimensions =
-            calculateBoundingBoxDimensions(pathArray);
-
-          setPendingBuildingPolygon({
-            polygon: polygon,
-            pathArray: pathArray,
-            boundingBoxDimensions: boundingBoxDimensions,
-          });
-
-          setWorkflowState("building-edit");
-
-          // Center map on the building
-          if (mapRef.current && roofData.buildingInsights?.center) {
-            mapRef.current.setCenter({
-              lat: roofData.buildingInsights.center.latitude,
-              lng: roofData.buildingInsights.center.longitude,
+          // Add info window on click
+          window.google.maps.event.addListener(segmentPolygon, "click", () => {
+            const infoWindow = new window.google.maps.InfoWindow({
+              content: `
+              <div style="padding: 10px;">
+                <strong>Roof Segment ${index + 1}</strong><br>
+                Area: ${segment.metadata.areaFeet2} ft²<br>
+                Pitch: ${segment.metadata.pitchDegrees}°<br>
+                Azimuth: ${segment.metadata.azimuthDegrees}°<br>
+                Height: ${segment.metadata.heightFeet} ft
+              </div>
+            `,
+              position: new window.google.maps.LatLng(
+                segment.metadata.center.latitude,
+                segment.metadata.center.longitude
+              ),
             });
-            mapRef.current.setZoom(20);
-          }
+            infoWindow.open(mapRef.current);
+          });
+        });
+
+        // For now, use the first segment as the building polygon
+        const firstSegment = segments[0];
+        const vertices = firstSegment.vertices.map(
+          (v) => new window.google.maps.LatLng(v.lat, v.lng)
+        );
+
+        const mainPolygon = new window.google.maps.Polygon({
+          paths: vertices,
+          fillColor: "#0000FF",
+          fillOpacity: 0.2,
+          strokeColor: "#0000FF",
+          strokeWeight: 3,
+          clickable: true,
+          editable: true,
+          zIndex: 2,
+          map: mapRef.current,
+        });
+
+        setPendingBuildingPolygon({
+          polygon: mainPolygon,
+          metadata: firstSegment.metadata,
+          allSegments: segments,
+        });
+
+        setWorkflowState("building-edit");
+
+        // Center map on the building
+        if (mapRef.current && buildingInsights?.center) {
+          mapRef.current.setCenter({
+            lat: buildingInsights.center.latitude,
+            lng: buildingInsights.center.longitude,
+          });
+          mapRef.current.setZoom(20);
         }
       }
     },
