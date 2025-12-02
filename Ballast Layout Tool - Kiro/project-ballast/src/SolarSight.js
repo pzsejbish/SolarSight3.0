@@ -20,6 +20,7 @@ import SolarSightMap from "./Components/SolarSightMap";
 import SolarPanelScene from "./Components/SolarPanelScene";
 import PanelObstructionManager from "./Components/PanelObstructionManager";
 import { generateObstructionSetbacks } from "./utils/ObstructionSetback";
+import RoofImportTool from "./Components/RoofImportTool";
 
 function isPolygonClockwise(pathArray) {
   let sum = 0;
@@ -2522,6 +2523,58 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
     [selectedPolygonIndex, arrayManager, mapRef]
   );
 
+  /**
+   * Handle roof import from Google Solar API
+   */
+  const handleRoofImported = useCallback(
+    (roofData) => {
+      console.log("🌞 Roof imported from Google Solar API:", roofData);
+
+      if (!mapRef.current || !window.google) {
+        console.error("Map or Google Maps API not available");
+        return;
+      }
+
+      // Convert the imported polygon to Google Maps format
+      const pathArray = roofData.polygon.vertices.map((vertex) => ({
+        lat: vertex.lat,
+        lng: vertex.lng,
+      }));
+
+      // Create the polygon on the map
+      const polygon = new window.google.maps.Polygon({
+        paths: pathArray.map(
+          (p) => new window.google.maps.LatLng(p.lat, p.lng)
+        ),
+        fillColor: "#2196F3",
+        fillOpacity: 0.2,
+        strokeWeight: 3,
+        strokeColor: "#2196F3",
+        clickable: true,
+        editable: true,
+        zIndex: 1,
+        draggable: false,
+        map: mapRef.current,
+      });
+
+      // Calculate bounding box dimensions
+      const boundingBoxDimensions = calculateBoundingBoxDimensions(pathArray);
+
+      // Store the polygon and transition to edit mode
+      setPendingBuildingPolygon({
+        polygon: polygon,
+        pathArray: pathArray,
+        boundingBoxDimensions: boundingBoxDimensions,
+      });
+
+      console.log(
+        "🟡 Auto-detected building polygon created, transitioning to EDIT mode"
+      );
+      setWorkflowState("building-edit");
+    },
+    [mapRef]
+  );
+
   //const baseRotation = selectedPolygon.totalRotationAngle;
 
   return (
@@ -2586,6 +2639,15 @@ function SolarSightComponent({ formData, onSave, existingLayout }) {
               : "Click individual panels to select"}
           </div>
         </div>
+
+        {/* Roof Import Tool - Show during building step */}
+        {useArrayMode && workflowState === "building" && (
+          <RoofImportTool
+            mapRef={mapRef}
+            onRoofImported={handleRoofImported}
+            googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+          />
+        )}
 
         {/* Workflow Control Panel (Building/Obstructions) - IN SIDEBAR */}
         {useArrayMode &&

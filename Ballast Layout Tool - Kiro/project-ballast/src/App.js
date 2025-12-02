@@ -17,7 +17,7 @@ import {
  */
 
 // Google Maps libraries to load
-const libraries = ["drawing", "geometry"];
+const libraries = ["drawing", "geometry", "places"];
 
 // Replace with your actual Google Maps API key
 const GOOGLE_MAPS_API_KEY =

@@ -39,7 +39,10 @@
     "three": "^0.169.0",
     "ts-loader": "^9.5.1",
     "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "geotiff": "^2.1.4-beta.1",
+    "geotiff-geokeys-to-proj4": "^2024.4.13",
+    "proj4": "^2.20.2"
   },
   "scripts": {
     "start": "react-scripts start",
