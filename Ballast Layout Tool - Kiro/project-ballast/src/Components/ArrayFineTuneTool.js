@@ -128,7 +128,81 @@ const ArrayFineTuneTool = ({
     }
   }, [hoveredPanelCoords, mode, currentArray]);
 
-  // Create plus signs for adding panels
+  // Helper function to create ghost panel corners
+  const createGhostPanelCorners = useCallback(
+    (targetRowOffset, targetColOffset) => {
+      const dims = arrayManager.getPanelDimensions();
+      const absoluteRotation = buildingRotation + (currentArray.rotation || 0);
+      const origin = new window.google.maps.LatLng(
+        currentArray.origin.lat,
+        currentArray.origin.lng
+      );
+
+      // Calculate position for the target panel
+      const rowDistance = targetRowOffset * dims.unitWidth;
+      const colDistance = targetColOffset * dims.unitLength;
+
+      let panelOrigin = origin;
+
+      // Move along building edge (row direction)
+      if (rowDistance !== 0) {
+        panelOrigin = window.google.maps.geometry.spherical.computeOffset(
+          panelOrigin,
+          Math.abs(rowDistance),
+          rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
+        );
+      }
+
+      // Move perpendicular to building edge (column direction)
+      if (colDistance !== 0) {
+        panelOrigin = window.google.maps.geometry.spherical.computeOffset(
+          panelOrigin,
+          Math.abs(colDistance),
+          colDistance > 0
+            ? (absoluteRotation + 90) % 360
+            : (absoluteRotation + 270) % 360
+        );
+      }
+
+      // Create panel corners (same logic as in ArrayManager)
+      const corners = [];
+
+      // Corner 0: origin (bottom-left)
+      corners.push(panelOrigin);
+
+      // Corner 1: move along building edge by panel width (bottom-right)
+      corners.push(
+        window.google.maps.geometry.spherical.computeOffset(
+          panelOrigin,
+          dims.width,
+          absoluteRotation
+        )
+      );
+
+      // Corner 2: from corner 1, move perpendicular by panel length (top-right)
+      corners.push(
+        window.google.maps.geometry.spherical.computeOffset(
+          corners[1],
+          dims.length,
+          (absoluteRotation + 90) % 360
+        )
+      );
+
+      // Corner 3: from origin, move perpendicular by panel length (top-left)
+      corners.push(
+        window.google.maps.geometry.spherical.computeOffset(
+          panelOrigin,
+          dims.length,
+          (absoluteRotation + 90) % 360
+        )
+      );
+
+      return corners;
+    },
+    [arrayManager, buildingRotation, currentArray]
+  );
+
+  // Create ghost panels for adding
   const createAddPanelMarkers = useCallback(
     (rowOffset, colOffset) => {
       // Clean up existing markers
@@ -137,13 +211,6 @@ const ArrayFineTuneTool = ({
       }
 
       if (!currentArray || !mapRef.current) return;
-
-      const dims = arrayManager.getPanelDimensions();
-      const absoluteRotation = buildingRotation + (currentArray.rotation || 0);
-      const origin = new window.google.maps.LatLng(
-        currentArray.origin.lat,
-        currentArray.origin.lng
-      );
 
       // Check which adjacent panels exist
       const hasTop = currentArray.panelCoords.has(
@@ -159,72 +226,25 @@ const ArrayFineTuneTool = ({
         `${rowOffset},${colOffset + 1}`
       );
 
-      const markers = [];
+      const ghostPanels = [];
 
-      // Calculate the center position of the current panel
-      const rowDistance = rowOffset * dims.unitWidth;
-      const colDistance = colOffset * dims.unitLength;
-
-      let panelCenter = origin;
-
-      // Move to row position (along building edge)
-      if (rowDistance !== 0) {
-        panelCenter = window.google.maps.geometry.spherical.computeOffset(
-          panelCenter,
-          Math.abs(rowDistance),
-          rowDistance > 0 ? absoluteRotation : (absoluteRotation + 180) % 360
-        );
-      }
-
-      // Move to center of panel along row axis
-      panelCenter = window.google.maps.geometry.spherical.computeOffset(
-        panelCenter,
-        dims.unitWidth / 2,
-        absoluteRotation
-      );
-
-      // Move to column position (perpendicular to building edge)
-      if (colDistance !== 0) {
-        panelCenter = window.google.maps.geometry.spherical.computeOffset(
-          panelCenter,
-          Math.abs(colDistance),
-          colDistance > 0
-            ? (absoluteRotation + 90) % 360
-            : (absoluteRotation + 270) % 360
-        );
-      }
-
-      // Move to center of panel along column axis
-      panelCenter = window.google.maps.geometry.spherical.computeOffset(
-        panelCenter,
-        dims.unitLength / 2,
-        (absoluteRotation + 90) % 360
-      );
-
-      // Create plus sign markers for each available direction
+      // Create ghost panel for each available direction
       // Top (negative row direction)
       if (!hasTop) {
-        const topPos = window.google.maps.geometry.spherical.computeOffset(
-          panelCenter,
-          dims.unitWidth / 2,
-          (absoluteRotation + 180) % 360
-        );
-
-        const topMarker = new window.google.maps.Marker({
-          position: topPos,
+        const corners = createGhostPanelCorners(rowOffset - 1, colOffset);
+        const ghostPanel = new window.google.maps.Polygon({
+          paths: corners,
           map: mapRef.current,
-          icon: {
-            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
-            strokeColor: "#9C27B0",
-            strokeWeight: 3,
-            scale: 1.5,
-            anchor: new window.google.maps.Point(0, 0),
-          },
+          fillColor: "#9C27B0",
+          fillOpacity: 0.15,
+          strokeColor: "#9C27B0",
+          strokeWeight: 2,
+          strokeOpacity: 0.6,
           clickable: true,
-          zIndex: 10003,
+          zIndex: 999,
         });
 
-        topMarker.addListener("click", () => {
+        ghostPanel.addListener("click", () => {
           arrayManager.addPanel(
             currentArray,
             rowOffset - 1,
@@ -237,32 +257,40 @@ const ArrayFineTuneTool = ({
           setUpdateCounter((c) => c + 1);
         });
 
-        markers.push(topMarker);
+        // Add hover effect
+        ghostPanel.addListener("mouseover", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.3,
+            strokeOpacity: 0.9,
+          });
+        });
+
+        ghostPanel.addListener("mouseout", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.15,
+            strokeOpacity: 0.6,
+          });
+        });
+
+        ghostPanels.push(ghostPanel);
       }
 
       // Bottom (positive row direction)
       if (!hasBottom) {
-        const bottomPos = window.google.maps.geometry.spherical.computeOffset(
-          panelCenter,
-          dims.unitWidth / 2,
-          absoluteRotation
-        );
-
-        const bottomMarker = new window.google.maps.Marker({
-          position: bottomPos,
+        const corners = createGhostPanelCorners(rowOffset + 1, colOffset);
+        const ghostPanel = new window.google.maps.Polygon({
+          paths: corners,
           map: mapRef.current,
-          icon: {
-            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
-            strokeColor: "#9C27B0",
-            strokeWeight: 3,
-            scale: 1.5,
-            anchor: new window.google.maps.Point(0, 0),
-          },
+          fillColor: "#9C27B0",
+          fillOpacity: 0.15,
+          strokeColor: "#9C27B0",
+          strokeWeight: 2,
+          strokeOpacity: 0.6,
           clickable: true,
-          zIndex: 10003,
+          zIndex: 999,
         });
 
-        bottomMarker.addListener("click", () => {
+        ghostPanel.addListener("click", () => {
           arrayManager.addPanel(
             currentArray,
             rowOffset + 1,
@@ -275,32 +303,39 @@ const ArrayFineTuneTool = ({
           setUpdateCounter((c) => c + 1);
         });
 
-        markers.push(bottomMarker);
+        ghostPanel.addListener("mouseover", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.3,
+            strokeOpacity: 0.9,
+          });
+        });
+
+        ghostPanel.addListener("mouseout", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.15,
+            strokeOpacity: 0.6,
+          });
+        });
+
+        ghostPanels.push(ghostPanel);
       }
 
       // Left (negative column direction)
       if (!hasLeft) {
-        const leftPos = window.google.maps.geometry.spherical.computeOffset(
-          panelCenter,
-          dims.unitLength / 2,
-          (absoluteRotation + 270) % 360
-        );
-
-        const leftMarker = new window.google.maps.Marker({
-          position: leftPos,
+        const corners = createGhostPanelCorners(rowOffset, colOffset - 1);
+        const ghostPanel = new window.google.maps.Polygon({
+          paths: corners,
           map: mapRef.current,
-          icon: {
-            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
-            strokeColor: "#9C27B0",
-            strokeWeight: 3,
-            scale: 1.5,
-            anchor: new window.google.maps.Point(0, 0),
-          },
+          fillColor: "#9C27B0",
+          fillOpacity: 0.15,
+          strokeColor: "#9C27B0",
+          strokeWeight: 2,
+          strokeOpacity: 0.6,
           clickable: true,
-          zIndex: 10003,
+          zIndex: 999,
         });
 
-        leftMarker.addListener("click", () => {
+        ghostPanel.addListener("click", () => {
           arrayManager.addPanel(
             currentArray,
             rowOffset,
@@ -313,32 +348,39 @@ const ArrayFineTuneTool = ({
           setUpdateCounter((c) => c + 1);
         });
 
-        markers.push(leftMarker);
+        ghostPanel.addListener("mouseover", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.3,
+            strokeOpacity: 0.9,
+          });
+        });
+
+        ghostPanel.addListener("mouseout", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.15,
+            strokeOpacity: 0.6,
+          });
+        });
+
+        ghostPanels.push(ghostPanel);
       }
 
       // Right (positive column direction)
       if (!hasRight) {
-        const rightPos = window.google.maps.geometry.spherical.computeOffset(
-          panelCenter,
-          dims.unitLength / 2,
-          (absoluteRotation + 90) % 360
-        );
-
-        const rightMarker = new window.google.maps.Marker({
-          position: rightPos,
+        const corners = createGhostPanelCorners(rowOffset, colOffset + 1);
+        const ghostPanel = new window.google.maps.Polygon({
+          paths: corners,
           map: mapRef.current,
-          icon: {
-            path: "M 0,-8 L 0,8 M -8,0 L 8,0", // Plus sign
-            strokeColor: "#9C27B0",
-            strokeWeight: 3,
-            scale: 1.5,
-            anchor: new window.google.maps.Point(0, 0),
-          },
+          fillColor: "#9C27B0",
+          fillOpacity: 0.15,
+          strokeColor: "#9C27B0",
+          strokeWeight: 2,
+          strokeOpacity: 0.6,
           clickable: true,
-          zIndex: 10003,
+          zIndex: 999,
         });
 
-        rightMarker.addListener("click", () => {
+        ghostPanel.addListener("click", () => {
           arrayManager.addPanel(
             currentArray,
             rowOffset,
@@ -351,19 +393,33 @@ const ArrayFineTuneTool = ({
           setUpdateCounter((c) => c + 1);
         });
 
-        markers.push(rightMarker);
+        ghostPanel.addListener("mouseover", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.3,
+            strokeOpacity: 0.9,
+          });
+        });
+
+        ghostPanel.addListener("mouseout", () => {
+          ghostPanel.setOptions({
+            fillOpacity: 0.15,
+            strokeOpacity: 0.6,
+          });
+        });
+
+        ghostPanels.push(ghostPanel);
       }
 
-      setAddPanelMarkers(markers);
+      setAddPanelMarkers(ghostPanels);
     },
     [
-      mode,
       currentArray,
       arrayManager,
       buildingRotation,
       mapRef,
       addPanelMarkers,
       onArrayUpdated,
+      createGhostPanelCorners,
     ]
   );
 
