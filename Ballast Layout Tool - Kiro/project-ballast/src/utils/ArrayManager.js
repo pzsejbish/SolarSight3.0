@@ -221,8 +221,8 @@ export class ArrayManager {
 
     // Generate panels for each coordinate
     for (const { rowOffset, colOffset } of coordsToGenerate) {
-      const distanceAlongEdge = rowOffset * dims.unitLength; // Along building edge (rows) - using length since long edge is parallel
-      const distancePerpendicular = colOffset * dims.unitWidth; // Perpendicular to edge (columns) - using width since short edge is perpendicular
+      const distanceAlongEdge = rowOffset * dims.unitWidth; // Along building edge (rows)
+      const distancePerpendicular = colOffset * dims.unitLength; // Perpendicular to edge (columns)
 
       // if (row < 3 && col === 0) {
       //   console.log(`🔧 Panel [${row},${col}] rowOffset=${rowOffset}, distanceAlongEdge=${distanceAlongEdge}m`);
@@ -355,37 +355,37 @@ export class ArrayManager {
    */
   createPanelCorners(origin, dims, rotation) {
     // Create panel corners by moving from origin along building-aligned directions
-    // Panel length (long edge) extends along the building edge (rotation direction)
-    // Panel width (short edge) extends perpendicular to the building edge (rotation + 90°)
+    // Panel width extends along the building edge (rotation direction)
+    // Panel length extends perpendicular to the building edge (rotation + 90°)
 
     const corners = [];
 
     // Corner 0: origin (bottom-left)
     corners.push(origin);
 
-    // Corner 1: move along building edge by panel length (bottom-right)
+    // Corner 1: move along building edge by panel width (bottom-right)
     corners.push(
       window.google.maps.geometry.spherical.computeOffset(
         origin,
-        dims.length,
+        dims.width,
         rotation
       )
     );
 
-    // Corner 2: from corner 1, move perpendicular by panel width (top-right)
+    // Corner 2: from corner 1, move perpendicular by panel length (top-right)
     corners.push(
       window.google.maps.geometry.spherical.computeOffset(
         corners[1],
-        dims.width,
+        dims.length,
         (rotation + 90) % 360
       )
     );
 
-    // Corner 3: from origin, move perpendicular by panel width (top-left)
+    // Corner 3: from origin, move perpendicular by panel length (top-left)
     corners.push(
       window.google.maps.geometry.spherical.computeOffset(
         origin,
-        dims.width,
+        dims.length,
         (rotation + 90) % 360
       )
     );
